@@ -12,12 +12,6 @@ export default class MenuScene extends Phaser.Scene {
     console.log("MenuScene create method called");
     this.cameras.main.setBackgroundColor("#222");
 
-    const title = this.add.text(this.cameras.main.width / 2, 100, "Village Game", {
-      fontSize: "48px",
-      fill: "#0f0"
-    });
-    title.setOrigin(0.5);
-
     const ui = document.getElementById("ui");
     ui.style.display = "block";
 
@@ -59,7 +53,7 @@ export default class MenuScene extends Phaser.Scene {
           email: email
         });
         ui.style.display = "none";
-        this.scene.start("VillageScene", { villageId: "testVillage" });
+        this.scene.start("VillageLobbyScene");
       } catch (error) {
         alert(error.message);
       }
@@ -87,7 +81,7 @@ export default class MenuScene extends Phaser.Scene {
 
         await signInWithEmailAndPassword(auth, email, password);
         ui.style.display = "none";
-        this.scene.start("VillageScene", { villageId: "testVillage" });
+        this.scene.start("VillageLobbyScene");
       } catch (error) {
         alert("Invalid username or password");
       }

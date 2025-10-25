@@ -34,6 +34,28 @@
         <button id="signup-button">Sign Up</button>
         <p>Already have an account? <a href="#" id="show-login">Login</a></p>
       </div>
+      <div id="village-lobby" style="display: none;">
+        <h2>Village Lobby</h2>
+        <div id="my-villages-list">
+          <h3>My Villages</h3>
+          <!-- Village list will be populated here -->
+        </div>
+        <div id="join-village-form">
+          <input type="text" id="join-village-id" placeholder="Village ID to Join" />
+          <button id="join-village-button">Join Village</button>
+        </div>
+        <button id="create-village-button">Create New Village</button>
+      </div>
+      <div id="customization-menu" style="display: none;">
+        <h2>Customize Your Villager</h2>
+        <div class="avatar-select">
+          <button id="prev-avatar">&lt;</button>
+          <img id="avatar-preview" src="assets/player1.png" alt="Avatar Preview" width="64" height="64">
+          <button id="next-avatar">&gt;</button>
+        </div>
+        <p id="avatar-name">Default Villager</p>
+        <button id="confirm-customization-button">Confirm</button>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

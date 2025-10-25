@@ -1,6 +1,8 @@
 import * as Phaser from "phaser";
 import MenuScene from "./scenes/MenuScene.js";
 import VillageScene from "./scenes/VillageScene.js";
+import VillageLobbyScene from "./scenes/VillageLobbyScene.js";
+import CustomizationScene from "./scenes/CustomizationScene.js";
 import { initialize } from './firebase-config.js';
 
 initialize.then(() => {
@@ -11,7 +13,7 @@ initialize.then(() => {
       height: window.innerHeight,
       parent: 'game',
       backgroundColor: "#333333",
-      scene: [MenuScene, VillageScene],
+      scene: [MenuScene, VillageLobbyScene, CustomizationScene, VillageScene],
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH

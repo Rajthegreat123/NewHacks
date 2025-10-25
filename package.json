@@ -13,7 +13,8 @@
     "express": "^4.21.2",
     "firebase": "^11.10.0",
     "phaser": "^3.90.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

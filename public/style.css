@@ -44,3 +44,21 @@ html, body {
   color: #0f0;
   text-decoration: none;
 }
+
+.avatar-select {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.avatar-select button {
+  width: 40px;
+  padding: 10px;
+}
+
+#avatar-name {
+  text-align: center;
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
