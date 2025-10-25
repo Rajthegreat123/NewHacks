@@ -1,0 +1,46 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#ui {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 10px;
+  color: white;
+  width: 300px;
+}
+
+#ui h2 {
+  text-align: center;
+}
+
+#ui input {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  box-sizing: border-box;
+}
+
+#ui button {
+  width: 100%;
+  padding: 10px;
+  background-color: #0f0;
+  color: black;
+  border: none;
+  cursor: pointer;
+}
+
+#ui p {
+  text-align: center;
+}
+
+#ui a {
+  color: #0f0;
+  text-decoration: none;
+}

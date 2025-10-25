@@ -1,0 +1,40 @@
+{
+  "name": "village-game",
+  "version": "1.0.0",
+  "description": "Multiplayer 2D side-scroller village game using Phaser, Firebase, and WebSockets",
+  "main": "server/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "firebase": "^11.10.0",
+    "phaser": "^3.90.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "live-server": "^1.2.2"
+  },
+  "keywords": [
+    "phaser",
+    "firebase",
+    "multiplayer",
+    "2d-game",
+    "websocket",
+    "hackathon"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rajthegreat123/NewHacks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rajthegreat123/NewHacks/issues"
+  },
+  "homepage": "https://github.com/Rajthegreat123/NewHacks#readme"
+}
