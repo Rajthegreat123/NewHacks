@@ -8,6 +8,9 @@ import {
   arrayUnion,
   collection,
   addDoc,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 export default class VillageLobbyScene extends Phaser.Scene {
@@ -79,48 +82,68 @@ export default class VillageLobbyScene extends Phaser.Scene {
   }
 
   async joinVillage() {
-    const villageId = document.getElementById("join-village-id").value;
-    if (!villageId) {
-      alert("Please enter a Village ID.");
+    const joinCode = document.getElementById("join-village-id").value.trim().toUpperCase();
+    if (!joinCode || joinCode.length !== 5) {
+      alert("Please enter a valid 5-character village code.");
       return;
     }
 
-    const villageRef = doc(this.db, "villages", villageId);
-    const villageDoc = await getDoc(villageRef);
+    // Query for the village with the matching code
+    const villagesRef = collection(this.db, "villages");
+    const q = query(villagesRef, where("villageCode", "==", joinCode));
+    const querySnapshot = await getDocs(q);
 
-    if (!villageDoc.exists()) {
-      alert(`Village with ID "${villageId}" does not exist.`);
+    if (querySnapshot.empty) {
+      alert(`No village found with code "${joinCode}".`);
       return;
     }
 
+    // Get the full village document and its ID
+    const villageDoc = querySnapshot.docs[0];
+    const villageId = villageDoc.id;
     const villageData = villageDoc.data();
-    if (villageData.members && villageData.members.includes(this.user.uid)) {
+    const villageRef = villageDoc.ref;
+
+    // Check if the user is already a member
+    if (villageData.members && villageData.members[this.user.uid]) {
         alert("You are already in this village!");
         this.enterVillage(villageId);
         return;
     }
 
     // Add user to the village's member list and village to user's village list
-    await updateDoc(villageRef, { members: arrayUnion(this.user.uid) });
+    // We set a placeholder for the house, which will be chosen in the next scene
+    await updateDoc(villageRef, { [`members.${this.user.uid}`]: { joined: new Date() } });
     await updateDoc(doc(this.db, "users", this.user.uid), { villages: arrayUnion(villageId) });
 
     alert(`Successfully joined village: ${villageData.name}`);
-    this.fetchUserVillages(); // Refresh the list
+    
+    // Go to house customization
+    this.scene.start("HouseCustomizationScene", { villageId: villageId });
   }
 
   async createVillage() {
     const villageName = prompt("Enter a name for your new village:");
     if (!villageName) return;
 
-    const villagesCol = collection(this.db, "villages");
-    const newVillageDoc = await addDoc(villagesCol, {
+    // Create a reference to a new document to get its ID before saving
+    const newVillageRef = doc(collection(this.db, "villages"));
+    const villageId = newVillageRef.id;
+    const villageCode = villageId.substring(0, 5).toUpperCase();
+
+    // Now set the data for the new village, including the code
+    await setDoc(newVillageRef, {
       name: villageName,
       owner: this.user.uid,
-      members: [this.user.uid],
+      villageCode: villageCode, // Store the short code
+      // Use a map for members to store extra data like house choice
+      members: {
+        [this.user.uid]: { joined: new Date() }
+      },
     });
 
-    await updateDoc(doc(this.db, "users", this.user.uid), { villages: arrayUnion(newVillageDoc.id) });    
-    this.scene.start("CustomizationScene", { villageId: newVillageDoc.id });
+    await updateDoc(doc(this.db, "users", this.user.uid), { villages: arrayUnion(villageId) });    
+    this.scene.start("HouseCustomizationScene", { villageId: villageId });
   }
 
   enterVillage(villageId) {

@@ -53,7 +53,7 @@ export default class MenuScene extends Phaser.Scene {
           email: email
         });
         ui.style.display = "none";
-        this.scene.start("VillageLobbyScene");
+        this.scene.start("AvatarCustomizationScene");
       } catch (error) {
         alert(error.message);
       }

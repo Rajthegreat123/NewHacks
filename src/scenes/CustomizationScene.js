@@ -5,9 +5,12 @@ import { doc, updateDoc } from "firebase/firestore";
 export default class CustomizationScene extends Phaser.Scene {
   constructor() {
     super("CustomizationScene");
-    this.avatars = ["player1.png", "player2.png", "player3.png"];
+    this.avatars = ["ArabCharacter_idle.png", "player2.png", "player3.png"]; // Using your specified avatar
     this.avatarNames = ["Adventurer", "Villager", "Wizard"];
     this.currentAvatarIndex = 0;
+
+    this.houses = Array.from({ length: 8 }, (_, i) => `House${i + 1}.png`);
+    this.currentHouseIndex = 0;
   }
 
   init(data) {
@@ -39,18 +42,29 @@ export default class CustomizationScene extends Phaser.Scene {
     this.avatarNameText = document.getElementById("avatar-name");
     this.prevButton = document.getElementById("prev-avatar");
     this.nextButton = document.getElementById("next-avatar");
+
+    this.housePreview = document.getElementById("house-preview");
+    this.houseNameText = document.getElementById("house-name");
+    this.prevHouseButton = document.getElementById("prev-house");
+    this.nextHouseButton = document.getElementById("next-house");
+
     this.confirmButton = document.getElementById("confirm-customization-button");
 
     // --- Event Listeners ---
     this.boundPrevAvatar = this.prevAvatar.bind(this);
     this.boundNextAvatar = this.nextAvatar.bind(this);
+    this.boundPrevHouse = this.prevHouse.bind(this);
+    this.boundNextHouse = this.nextHouse.bind(this);
     this.boundConfirm = this.confirm.bind(this);
 
     this.prevButton.addEventListener("click", this.boundPrevAvatar);
     this.nextButton.addEventListener("click", this.boundNextAvatar);
+    this.prevHouseButton.addEventListener("click", this.boundPrevHouse);
+    this.nextHouseButton.addEventListener("click", this.boundNextHouse);
     this.confirmButton.addEventListener("click", this.boundConfirm);
 
     this.updateAvatarDisplay();
+    this.updateHouseDisplay();
 
     this.events.on('shutdown', this.shutdown, this);
   }
@@ -59,6 +73,12 @@ export default class CustomizationScene extends Phaser.Scene {
     const avatarFile = this.avatars[this.currentAvatarIndex];
     this.avatarPreview.src = `assets/${avatarFile}`;
     this.avatarNameText.innerText = this.avatarNames[this.currentAvatarIndex];
+  }
+
+  updateHouseDisplay() {
+    const houseFile = this.houses[this.currentHouseIndex];
+    this.housePreview.src = `assets/${houseFile}`;
+    this.houseNameText.innerText = `Style ${this.currentHouseIndex + 1}`;
   }
 
   prevAvatar() {
@@ -77,10 +97,29 @@ export default class CustomizationScene extends Phaser.Scene {
     this.updateAvatarDisplay();
   }
 
+  prevHouse() {
+    this.currentHouseIndex--;
+    if (this.currentHouseIndex < 0) {
+      this.currentHouseIndex = this.houses.length - 1;
+    }
+    this.updateHouseDisplay();
+  }
+
+  nextHouse() {
+    this.currentHouseIndex++;
+    if (this.currentHouseIndex >= this.houses.length) {
+      this.currentHouseIndex = 0;
+    }
+    this.updateHouseDisplay();
+  }
+
   async confirm() {
     const selectedAvatar = this.avatars[this.currentAvatarIndex];
+    const selectedHouse = this.houses[this.currentHouseIndex];
     const userDocRef = doc(this.db, "users", this.user.uid);
-    await updateDoc(userDocRef, { avatar: selectedAvatar });
+
+    // Save both avatar and house selection
+    await updateDoc(userDocRef, { avatar: selectedAvatar, house: selectedHouse });
 
     this.shutdown();
     this.scene.start("VillageScene", { villageId: this.villageId });
@@ -90,6 +129,8 @@ export default class CustomizationScene extends Phaser.Scene {
     document.getElementById("customization-menu").style.display = "none";
     this.prevButton.removeEventListener("click", this.boundPrevAvatar);
     this.nextButton.removeEventListener("click", this.boundNextAvatar);
+    this.prevHouseButton.removeEventListener("click", this.boundPrevHouse);
+    this.nextHouseButton.removeEventListener("click", this.boundNextHouse);
     this.confirmButton.removeEventListener("click", this.boundConfirm);
   }
 }

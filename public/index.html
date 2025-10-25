@@ -46,15 +46,33 @@
         </div>
         <button id="create-village-button">Create New Village</button>
       </div>
-      <div id="customization-menu" style="display: none;">
-        <h2>Customize Your Villager</h2>
-        <div class="avatar-select">
-          <button id="prev-avatar">&lt;</button>
-          <img id="avatar-preview" src="assets/player1.png" alt="Avatar Preview" width="64" height="64">
-          <button id="next-avatar">&gt;</button>
+      <!-- Avatar Customization (for new users) -->
+      <div id="avatar-customization-menu" style="display: none;">
+        <h2>Create Your Villager</h2>
+        <div class="customization-column">
+          <h3>Villager</h3>
+          <div class="avatar-select">
+            <button id="ac-prev-avatar">&lt;</button>
+            <img id="ac-avatar-preview" src="assets/ArabCharacter_idle.png" alt="Avatar Preview">
+            <button id="ac-next-avatar">&gt;</button>
+          </div>
+          <p id="ac-avatar-name">Adventurer</p>
         </div>
-        <p id="avatar-name">Default Villager</p>
-        <button id="confirm-customization-button">Confirm</button>
+        <button id="ac-confirm-button">Confirm</button>
+      </div>
+      <!-- House Customization (for new villages) -->
+      <div id="house-customization-menu" style="display: none;">
+        <h2>Choose Your House</h2>
+        <div class="customization-column">
+          <h3>House</h3>
+          <div class="house-select">
+            <button id="hc-prev-house">&lt;</button>
+            <img id="hc-house-preview" src="assets/House1.png" alt="House Preview" />
+            <button id="hc-next-house">&gt;</button>
+          </div>
+          <p id="hc-house-name">Cozy Cottage</p>
+        </div>
+        <button id="hc-confirm-button">Confirm</button>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>

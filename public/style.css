@@ -13,7 +13,6 @@ html, body {
   padding: 20px;
   border-radius: 10px;
   color: white;
-  width: 300px;
 }
 
 #ui h2 {
@@ -45,11 +44,28 @@ html, body {
   text-decoration: none;
 }
 
+#login-form, #signup-form, #village-lobby {
+  width: 300px;
+}
+
+/* --- Customization Menu --- */
+#avatar-customization-menu, #house-customization-menu {
+  width: 300px;
+}
+
+.customization-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .avatar-select {
   display: flex;
   justify-content: space-around;
   align-items: center;
   margin: 20px 0;
+  width: 100%;
 }
 
 .avatar-select button {
@@ -57,7 +73,46 @@ html, body {
   padding: 10px;
 }
 
-#avatar-name {
+#ac-avatar-name {
+  text-align: center;
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
+
+#ac-avatar-preview {
+  width: 128px;  /* Explicitly set size */
+  height: 128px; /* This is 8x the original 16x16 size */
+  image-rendering: pixelated; /* Modern browsers */
+  image-rendering: -moz-crisp-edges; /* Firefox */
+  image-rendering: crisp-edges; /* Old Firefox */
+  background-color: #555; /* Add a background to see the sprite better */
+  border: 2px solid #ccc;
+}
+
+.house-select {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.house-select button {
+  width: 40px;
+  padding: 10px;
+}
+
+#hc-house-preview {
+  width: 128px;
+  height: 128px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  background-color: #555;
+  border: 2px solid #ccc;
+}
+
+#hc-house-name {
   text-align: center;
   font-size: 1.2em;
   margin-bottom: 20px;
