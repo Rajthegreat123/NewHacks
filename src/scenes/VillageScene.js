@@ -17,6 +17,7 @@ export default class VillageScene extends Phaser.Scene {
     this.mainPlayerSprite = null; // Reference to the main player's sprite
     this.ground = null; // Reference to the ground physics object
     this.lastY = 0; // For tracking Y position changes
+    this.loadingPlayers = new Set();
   }
 
   preload() {
@@ -225,9 +226,6 @@ export default class VillageScene extends Phaser.Scene {
         const stillConnected = serverPlayerIds.includes(uid);
         if (!stillConnected) {
           player.sprite.destroy();
-          if (player.textUpdateEvent) {
-            player.textUpdateEvent.destroy();
-          }
           player.usernameText.destroy();
           this.otherPlayers.delete(uid);
         }
@@ -282,9 +280,15 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   async createOtherPlayer(uid, playerData) {
+    if (this.otherPlayers.has(uid) || this.loadingPlayers.has(uid)) return;
+    this.loadingPlayers.add(uid);
+
     // Fetch the new player's user data from Firestore to get their avatar and username
     const userDoc = await getDoc(doc(this.db, "users", uid));
-    if (!userDoc.exists()) return;
+    if (!userDoc.exists()) {
+      this.loadingPlayers.delete(uid);
+      return;
+    }
 
     const otherUserData = userDoc.data();
     const avatarKey = (otherUserData.avatar || "ArabCharacter_idle.png").split('.')[0];
@@ -311,5 +315,6 @@ export default class VillageScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(2);
 
     this.otherPlayers.set(uid, { sprite, usernameText });
+    this.loadingPlayers.delete(uid);
   }
 }
