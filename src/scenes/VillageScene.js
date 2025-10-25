@@ -14,6 +14,9 @@ export default class VillageScene extends Phaser.Scene {
     this.playerRef = null; // Reference to this player in Realtime Database
     this.houses = new Map(); // To store spawned house sprites
     this.villageUnsubscribe = null; // To clean up the Firestore listener
+    this.mainPlayerSprite = null; // Reference to the main player's sprite
+    this.ground = null; // Reference to the ground physics object
+    this.lastY = 0; // For tracking Y position changes
   }
 
   preload() {
@@ -40,6 +43,7 @@ export default class VillageScene extends Phaser.Scene {
 
     // --- Define World Properties ---
     const groundLevel = this.cameras.main.height * 0.85; // Lower 15% is ground
+    const spawnHeight = groundLevel - 50; // Spawn players slightly above ground
     const worldWidth = this.cameras.main.width * 2; // Make the world wider than the screen
 
     // --- Scaling Calculations ---
@@ -62,19 +66,20 @@ export default class VillageScene extends Phaser.Scene {
     const playerAvatarKey = avatar.split('.')[0]; // "ArabCharacter_idle.png" -> "ArabCharacter_idle"
 
     // --- Create World Elements ---
-    const ground = this.add.rectangle(0, groundLevel, worldWidth, this.cameras.main.height * 0.15, 0x8b4513).setOrigin(0);
-    this.physics.add.existing(ground, true); // Make it a static physics body
+    this.ground = this.add.rectangle(0, groundLevel, worldWidth, this.cameras.main.height * 0.15, 0x8b4513).setOrigin(0);
+    this.physics.add.existing(this.ground, true); // Make it a static physics body
 
     // Brown Box (centerpiece)
     this.brownRectangle = this.add.rectangle(worldWidth / 2, groundLevel, 35 * playerScale, 15 * playerScale, 0x8B4513)
       .setOrigin(0.5, 1);
 
     // --- Create Player ---
-      this.player = this.physics.add.sprite(worldWidth / 2, groundLevel, playerAvatarKey)
+      this.player = this.physics.add.sprite(worldWidth / 2, spawnHeight, playerAvatarKey)
       .setOrigin(0.5, 1) // Anchor to bottom-center
       .setScale(playerScale)
       .setDepth(2); // Set player depth to be higher than houses
     this.player.setCollideWorldBounds(true);
+    this.mainPlayerSprite = this.player; // Store a reference to the main player
 
     // Set the physics body to the original sprite size (e.g., 16x16).
     // Phaser will automatically scale this hitbox along with the visual sprite.
@@ -90,9 +95,20 @@ export default class VillageScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(2); // Match player depth
 
     // --- Physics and Camera ---
-    this.physics.add.collider(this.player, ground);
+    this.physics.add.collider(this.player, this.ground);
     this.physics.world.setBounds(0, 0, worldWidth, this.cameras.main.height);
     this.cameras.main.setBounds(0, 0, worldWidth, this.cameras.main.height);
+
+    // Immediately sync initial position
+    this.physics.world.once('worldstep', () => {
+      if (this.playerRef) {
+        set(this.playerRef, {
+          x: this.player.x,
+          yNorm: this.player.y / this.cameras.main.height,
+          vx: 0
+        });
+      }
+    });
     this.cameras.main.startFollow(this.player);
 
     // --- UI Elements ---
@@ -112,41 +128,48 @@ export default class VillageScene extends Phaser.Scene {
     this.listenForVillageUpdates();
   }
 
+  updatePlayerPosition() {
+    if (this.playerRef) {
+      set(this.playerRef, {
+        x: this.player.x,
+        yNorm: this.player.y / this.cameras.main.height, // normalized Y (0..1)
+        vx: this.player.body.velocity.x, // Also send velocity
+      });
+    }
+  }
+
   update() {
     // Guard clause to prevent update from running before create() is complete
     if (!this.cursors || !this.player) return;
 
-    if (this.cursors.left.isDown) this.player.setVelocityX(-160);
-    else if (this.cursors.right.isDown) this.player.setVelocityX(160);
-    else this.player.setVelocityX(0);
+    let isMoving = false;
 
-    if (this.cursors.up.isDown && this.player.body.blocked.down)
-      this.player.setVelocityY(-200);
-
-    // Apply stronger gravity when falling
-    const fallMultiplier = 2.5;
-    if (this.player.body.velocity.y > 0) {
-      this.player.body.gravity.y = this.physics.world.gravity.y * fallMultiplier;
+    if (this.cursors.left.isDown) {
+      this.player.setVelocityX(-160);
+      isMoving = true;
+    } else if (this.cursors.right.isDown) {
+      this.player.setVelocityX(160);
+      isMoving = true;
     } else {
-      this.player.body.gravity.y = this.physics.world.gravity.y;
+      this.player.setVelocityX(0);
+    }
+
+    if (this.cursors.up.isDown && this.player.body.blocked.down) {
+      this.player.setVelocityY(-200);
+      isMoving = true;
     }
 
     // Update username position
     this.usernameText.x = this.player.x; // Follow player's X
     this.usernameText.y = this.player.y - this.player.displayHeight - 10; // Position above the scaled player
 
-    // Send position updates
-    if (this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0) {
+    const previousY = this.lastY || this.player.y;
+    const movedY = Math.abs(this.player.y - previousY) > 2; // only send if y changed meaningfully
+    this.lastY = this.player.y;
+
+    // Send updates only if moving or Y changed (e.g., jumping)
+    if (isMoving || movedY) {
       this.updatePlayerPosition();
-    }
-  }
-  
-  updatePlayerPosition() {
-    if (this.playerRef) {
-      set(this.playerRef, {
-        x: this.player.x,
-        y: this.player.y,
-      });
     }
   }
 
@@ -154,12 +177,8 @@ export default class VillageScene extends Phaser.Scene {
     const villagePlayersRef = ref(this.rtdb, `villages/${this.villageId}/players`);
     this.playerRef = ref(this.rtdb, `villages/${this.villageId}/players/${this.user.uid}`);
 
-    // Add player to the village in RTDB
-    set(this.playerRef, {
-      x: this.player.x,
-      y: this.player.y,
-    });
-
+    // Wait for the first physics step to ensure the player is properly on the ground
+    // before setting the initial position in the database.
     // Set up onDisconnect to remove the player when they close the tab
     onDisconnect(this.playerRef).remove();
 
@@ -178,9 +197,23 @@ export default class VillageScene extends Phaser.Scene {
         if (this.otherPlayers.has(uid)) {
           // Player exists, update position
           const existingPlayer = this.otherPlayers.get(uid);
+
+          // De-normalize Y for this client
+          const targetX = playerData.x;
+          const targetY = (typeof playerData.yNorm === 'number')
+            ? playerData.yNorm * this.cameras.main.height
+            : playerData.y || existingPlayer.sprite.y;
+
           // Smoothly move the player
-          this.tweens.add({ targets: existingPlayer.sprite, x: playerData.x, y: playerData.y, duration: 100, ease: 'Linear' });
-          existingPlayer.usernameText.setPosition(playerData.x, playerData.y - existingPlayer.sprite.displayHeight - 10); // Update text position immediately
+          this.tweens.add({
+            targets: existingPlayer.sprite,
+            x: targetX,
+            y: targetY,
+            duration: 60, // faster interpolation for jumps
+            ease: 'Linear'
+          });
+
+          existingPlayer.usernameText.setPosition(targetX, targetY - existingPlayer.sprite.displayHeight - 10);
         } else {
           // New player, create them
           this.createOtherPlayer(uid, playerData);
@@ -192,6 +225,9 @@ export default class VillageScene extends Phaser.Scene {
         const stillConnected = serverPlayerIds.includes(uid);
         if (!stillConnected) {
           player.sprite.destroy();
+          if (player.textUpdateEvent) {
+            player.textUpdateEvent.destroy();
+          }
           player.usernameText.destroy();
           this.otherPlayers.delete(uid);
         }
@@ -254,15 +290,25 @@ export default class VillageScene extends Phaser.Scene {
     const avatarKey = (otherUserData.avatar || "ArabCharacter_idle.png").split('.')[0];
     const username = otherUserData.username || "Villager";
 
-    const sprite = this.add.sprite(playerData.x, playerData.y, avatarKey).setScale(this.player.scale).setDepth(2);
-    sprite.setOrigin(0.5, 1);
+    // De-normalize incoming Y for this client
+    const spawnX = playerData.x || this.cameras.main.width / 2;
+    const spawnY = (typeof playerData.yNorm === 'number')
+      ? playerData.yNorm * this.cameras.main.height
+      : (playerData.y || this.cameras.main.height * 0.85 - 50);
 
-    const usernameText = this.add.text(playerData.x, playerData.y - sprite.displayHeight - 10, username, {
+    const sprite = this.physics.add.sprite(spawnX, spawnY, avatarKey)
+      .setScale(this.player.scale)
+      .setOrigin(0.5, 1)
+      .setDepth(2);
+
+    sprite.body.setAllowGravity(false); // We'll control their position from the server
+
+    const usernameText = this.add.text(spawnX, spawnY - sprite.displayHeight - 10, username, {
         fontSize: '12px',
         fill: '#ffffff',
         backgroundColor: 'rgba(0,0,0,0.5)',
         padding: { x: 4, y: 2 }
-      }).setOrigin(0.5).setDepth(2);
+    }).setOrigin(0.5).setDepth(2);
 
     this.otherPlayers.set(uid, { sprite, usernameText });
   }
