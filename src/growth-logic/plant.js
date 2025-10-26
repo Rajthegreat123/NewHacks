@@ -42,10 +42,5 @@ let flowerDicts = flowerObjects.map(flower => flower.toDict());
 // Log them all out
 console.log(flowerDicts);
   //console.log(JSON.stringify(dict_plants, null, 2));
-
-
-// Flower type should be in a defined set
-// All flowers in the game will be in a list
-// rate of growth varies by plant type, do research?
-// 
+export default flowerDicts;
 
