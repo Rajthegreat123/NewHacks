@@ -14,6 +14,9 @@ initialize.then(() => {
       width: window.innerWidth,
       height: window.innerHeight,
       parent: 'game',
+      dom: {
+        createContainer: true
+      },
       backgroundColor: "#333333",
       scene: [MenuScene, VillageLobbyScene, AvatarCustomizationScene, HouseCustomizationScene, VillageScene],
       scale: {

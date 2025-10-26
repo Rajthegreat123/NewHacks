@@ -28,4 +28,4 @@ function getRealtimeDb() {
 }
 
 
-export { initialize, getDb, getAuthInstance, getRealtimeDb };
+export { initialize, getDb, getAuthInstance, getRealtimeDb};
