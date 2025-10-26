@@ -5,6 +5,7 @@ import VillageLobbyScene from "./scenes/VillageLobbyScene.js";
 import AvatarCustomizationScene from "./scenes/AvatarCustomizationScene.js";
 import HouseCustomizationScene from "./scenes/HouseCustomizationScene.js";
 import { initialize } from './firebase-config.js';
+import InteriorScene from "./scenes/InteriorScene.js";
 
 initialize.then(() => {
     console.log("Firebase initialized, creating game...");
@@ -18,7 +19,7 @@ initialize.then(() => {
         createContainer: true
       },
       backgroundColor: "#333333",
-      scene: [MenuScene, VillageLobbyScene, AvatarCustomizationScene, HouseCustomizationScene, VillageScene],
+      scene: [MenuScene, VillageLobbyScene, AvatarCustomizationScene, HouseCustomizationScene, VillageScene, InteriorScene],
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH

@@ -48,6 +48,7 @@ export default class VillageScene extends Phaser.Scene {
     this.load.image("post", "assets/post.png");
     this.load.image("emptyscreen", "assets/ScreenEmpty.png");
     this.load.image("exclamation", "assets/exclamation.png");
+    this.load.image("InnerHouse", "assets/InnerHouse.png");
 
     // Load all possible house styles
     for (let i = 1; i <= 8; i++) {
@@ -232,8 +233,19 @@ export default class VillageScene extends Phaser.Scene {
     }
 
     // Handle interaction logic
-    if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.closestInteractiveObject === this.brownRectangle) {
-      this.openInteractionPanel();
+    if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.closestInteractiveObject) {
+      if (this.closestInteractiveObject === this.brownRectangle) {
+        this.openInteractionPanel();
+      } else {
+        // It's a house. Find which one.
+        for (const [ownerId, houseData] of this.houses.entries()) {
+          if (houseData.sprite === this.closestInteractiveObject) {
+            // Transition to the InteriorScene, passing the villageId and house owner's ID
+            this.scene.start("InteriorScene", { villageId: this.villageId, houseOwnerId: ownerId });
+            break;
+          }
+        }
+      }
     }
 
     let isMoving = false;
