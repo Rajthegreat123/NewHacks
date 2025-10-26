@@ -36,13 +36,17 @@ export default class VillageScene extends Phaser.Scene {
     // Load all possible player avatars
     this.load.image("ArabCharacter_idle", "assets/ArabCharacter_idle.png");
     this.load.image("AfricanCharacter1", "assets/AfricanCharacter1.png");
-    this.load.image("IndianCharacter1", "assets/IndianCharacter1.png"); // Assuming you have these
+    this.load.image("IndianCharacter1", "assets/IndianCharacter1.png");
+    this.load.image("IndianCharacter_idle", "assets/IndianCharacter_idle.png");
+    this.load.image("AfricanCharacter_idle", "assets/AfricanCharacter_idle.png");
 
-    // Load walking animation frames for Arab character
-    this.load.image("ArabCharacter_run1", "assets/ArabCharacter_run1.png");
-    this.load.image("ArabCharacter_run2", "assets/ArabCharacter_run2.png");
-    this.load.image("ArabCharacter_run3", "assets/ArabCharacter_run3.png");
-    this.load.image("ArabCharacter_run4", "assets/ArabCharacter_run4.png");
+    // Load walking animation frames for all characters
+    const characterTypes = ['ArabCharacter', 'IndianCharacter', 'AfricanCharacter'];
+    characterTypes.forEach(charType => {
+      for (let i = 1; i <= 4; i++) {
+        this.load.image(`${charType}_run${i}`, `assets/${charType}_run${i}.png`);
+      }
+    });
     this.load.image("board", "assets/board.png");
     this.load.image("ground", "assets/ground.png");
     this.load.image("post", "assets/post.png");
@@ -140,26 +144,32 @@ export default class VillageScene extends Phaser.Scene {
       padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(2); // Match player depth
 
-    // --- Create Animations ---
-    // Note: This only creates animations for the Arab character.
-    // You would repeat this for other character types.
-    this.anims.create({
-      key: 'arab_walk',
-      frames: [
-        { key: 'ArabCharacter_run1' },
-        { key: 'ArabCharacter_run2' },
-        { key: 'ArabCharacter_run3' },
-        { key: 'ArabCharacter_run4' },
-      ],
-      frameRate: 10,
-      repeat: -1 // loop
+    // --- Create Animations for All Character Types ---
+    const characterTypes = ['ArabCharacter', 'IndianCharacter', 'AfricanCharacter'];
+    characterTypes.forEach(charType => {
+      // Create walk animation
+      this.anims.create({
+        key: `${charType}_walk`,
+        frames: [
+          { key: `${charType}_run1` },
+          { key: `${charType}_run2` },
+          { key: `${charType}_run3` },
+          { key: `${charType}_run4` },
+        ],
+        frameRate: 10,
+        repeat: -1 // loop
+      });
+
+      // Create idle animation
+      this.anims.create({
+        key: `${charType}_idle`,
+        frames: [{ key: `${charType}_idle` }],
+        frameRate: 1,
+      });
     });
 
-    this.anims.create({
-      key: 'arab_idle',
-      frames: [{ key: 'ArabCharacter_idle' }],
-      frameRate: 1,
-    });
+    // Store the character type for easy access
+    this.playerCharacterType = playerAvatarKey.replace('_idle', '');
 
 
     // --- Physics and Camera ---
@@ -269,10 +279,10 @@ export default class VillageScene extends Phaser.Scene {
 
     // Play walk animation if moving horizontally on the ground
     if (isMoving && this.player.body.velocity.x !== 0 && this.player.body.blocked.down) {
-      this.player.play('arab_walk', true);
+      this.player.play(`${this.playerCharacterType}_walk`, true);
     } else if (!isMoving && this.player.body.blocked.down) {
       // Play idle animation if not moving and on the ground
-      this.player.play('arab_idle', true);
+      this.player.play(`${this.playerCharacterType}_idle`, true);
     }
 
     this.usernameText.x = this.player.x; // Follow player's X
@@ -365,11 +375,12 @@ export default class VillageScene extends Phaser.Scene {
           });
 
           // Sync animation state for other players
+          const otherCharType = existingPlayer.characterType;
           existingPlayer.sprite.flipX = playerData.flipX;
           if (playerData.vx !== 0) {
-            existingPlayer.sprite.play('arab_walk', true);
+            existingPlayer.sprite.play(`${otherCharType}_walk`, true);
           } else {
-            existingPlayer.sprite.play('arab_idle', true);
+            existingPlayer.sprite.play(`${otherCharType}_idle`, true);
           }
 
           existingPlayer.usernameText.setPosition(targetX, targetY - existingPlayer.sprite.displayHeight - 10);
@@ -607,6 +618,7 @@ export default class VillageScene extends Phaser.Scene {
 
     const otherUserData = userDoc.data();
     const avatarKey = (otherUserData.avatar || "ArabCharacter_idle.png").split('.')[0];
+    const characterType = avatarKey.replace('_idle', ''); // Extract character type (e.g., "ArabCharacter")
     const username = otherUserData.username || "Villager";
 
     // De-normalize incoming Y for this client
@@ -620,25 +632,6 @@ export default class VillageScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(2);
 
-    // Create animations for the new player sprite
-    sprite.anims.create({
-      key: 'arab_idle',
-      frames: [{ key: 'ArabCharacter_idle' }],
-      frameRate: 1
-    });
-
-    // Also create the walk animation for this sprite
-    sprite.anims.create({
-      key: 'arab_walk',
-      frames: [
-        { key: 'ArabCharacter_run1' },
-        { key: 'ArabCharacter_run2' },
-        { key: 'ArabCharacter_run3' },
-        { key: 'ArabCharacter_run4' },
-      ],
-      frameRate: 10,
-      repeat: -1 // loop
-    });
     this.textures.get(avatarKey).setFilter(Phaser.Textures.FilterMode.NEAREST);
     sprite.body.setAllowGravity(false); // We'll control their position from the server
 
@@ -650,7 +643,7 @@ export default class VillageScene extends Phaser.Scene {
         padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(2);
 
-    this.otherPlayers.set(uid, { sprite, usernameText });
+    this.otherPlayers.set(uid, { sprite, usernameText, characterType });
     this.loadingPlayers.delete(uid);
   }
 
