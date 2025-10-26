@@ -9,6 +9,7 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   init(data) {
+    this.background = null; // For the parallax background
     this.villageId = data.villageId;
     this.otherPlayers = new Map(); // To store sprites of other players
     this.playerRef = null; // Reference to this player in Realtime Database
@@ -29,6 +30,7 @@ export default class VillageScene extends Phaser.Scene {
     this.postCreatorDOM = null; // To store the post creator DOM element
     this.postsData = []; // To cache post data from Firestore
     this.username = "Villager"; // To store the current player's username
+    this.exclamationMark = null; // Sprite for the unread posts notification
   }
 
   preload() {
@@ -46,6 +48,8 @@ export default class VillageScene extends Phaser.Scene {
     this.load.image("ground", "assets/ground.png");
     this.load.image("post", "assets/post.png");
     this.load.image("emptyscreen", "assets/ScreenEmpty.png");
+    this.load.image("exclamation", "assets/exclamation.png");
+    this.load.image("BG1", "assets/BG1.png");
 
     // Load all possible house styles
     for (let i = 1; i <= 8; i++) {
@@ -62,6 +66,14 @@ export default class VillageScene extends Phaser.Scene {
 
     // Hide the main UI container
     document.getElementById("ui").style.display = "none";
+
+    // --- Create Parallax Background ---
+    this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'BG1')
+      .setOrigin(0, 0)
+      .setScrollFactor(0) // Pin the tileSprite to the camera
+      .setDepth(-1) // Ensure it's behind everything else
+      .setTileScale(2.15); // Scale the texture inside the tile sprite
+    this.textures.get("BG1").setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     // --- Define World Properties ---
     const groundLevel = this.cameras.main.height * 0.85; // Lower 15% is ground
@@ -102,6 +114,15 @@ export default class VillageScene extends Phaser.Scene {
       .setDepth(1).setScale(playerScale); // Scale it relative to the player
     this.textures.get("board").setFilter(Phaser.Textures.FilterMode.NEAREST);
 
+    // --- Create Unread Post Indicator ---
+    this.exclamationMark = this.add.image(
+        this.brownRectangle.x + this.brownRectangle.displayWidth / 2 - 10, // Position top-right
+        this.brownRectangle.y - this.brownRectangle.displayHeight + 25, // Moved down a bit
+        'exclamation'
+      )
+      .setDepth(this.brownRectangle.depth + 1) // Above the board
+      .setScale(playerScale * 0.5) // Made it bigger
+      .setVisible(false);
     // --- Create Player ---
       this.player = this.physics.add.sprite(this.brownRectangle.x, this.brownRectangle.y - 50, playerAvatarKey)
       .setOrigin(0.5, 1) // Anchor to bottom-center
@@ -208,25 +229,16 @@ export default class VillageScene extends Phaser.Scene {
   update() {
     // Guard clause to prevent update from running before create() is complete
     if (!this.cursors || !this.player || !this.player.body) return;
-
-    // If an expanded post is open, do nothing else
-    if (this.expandedPost) {
+    
+    // If any UI panel or form is open, freeze the player and stop all other update logic.
+    if (this.isPanelOpen || this.isDomFormOpen || this.expandedPost) {
       this.player.setVelocity(0);
       return;
     }
 
     // Handle interaction logic
-    if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && !this.isDomFormOpen) {
-      // Only allow spacebar to OPEN the panel, not close it.
-      if (!this.isPanelOpen && this.closestInteractiveObject === this.brownRectangle) {
-        this.openInteractionPanel();
-      }
-    }
-
-    // If a panel is open, freeze the player and skip movement/interaction logic
-    if (this.isPanelOpen || this.isDomFormOpen) {
-      this.player.setVelocity(0);
-      return;
+    if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.closestInteractiveObject === this.brownRectangle) {
+      this.openInteractionPanel();
     }
 
     let isMoving = false;
@@ -256,6 +268,12 @@ export default class VillageScene extends Phaser.Scene {
       this.player.play('arab_idle', true);
     }
     // Update username position
+
+    // Update the tileSprite's position to keep it scrolling with the player
+    // We multiply the camera's scroll position by a factor to create the parallax effect.
+    // A smaller factor (e.g., 0.25) means the background moves slower.
+    this.background.tilePositionX = this.cameras.main.scrollX * 0.5; 
+
     this.usernameText.x = this.player.x; // Follow player's X
     this.usernameText.y = this.player.y - this.player.displayHeight - 10; // Position above the scaled player
 
@@ -391,6 +409,8 @@ export default class VillageScene extends Phaser.Scene {
       snapshot.forEach(doc => {
         this.postsData.push({ id: doc.id, ...doc.data() });
       });
+      // Check if any of the new posts are unread and show the indicator
+      this.checkForUnreadPosts();
       // Always re-render when data changes. The function itself will know
       // whether to create new sprites or just update visibility.
       if (this.interactionPanel) {
@@ -432,6 +452,7 @@ export default class VillageScene extends Phaser.Scene {
     this.posts.forEach(post => {
       post.sprite.destroy();
       post.usernameText.destroy();
+      if (post.notification) post.notification.destroy();
     });
     this.posts.clear();
 
@@ -442,6 +463,8 @@ export default class VillageScene extends Phaser.Scene {
     const bodyLeft = body.x - body.displayWidth / 2;
     const rowHeight = body.displayHeight * 0.45;
     const colWidth = body.displayWidth / 5;
+
+    const readPostIds = this.getReadPostIds();
 
     postsData.forEach((post, index) => {
       if (index >= 10) return; // Max 10 posts
@@ -480,7 +503,23 @@ export default class VillageScene extends Phaser.Scene {
         .setDepth(body.depth + 2);
 
       postSprite.on('pointerdown', () => this.showExpandedPost(post));
-      this.posts.set(post.id, { sprite: postSprite, usernameText, data: post });
+
+      // --- Add Individual Unread Notification ---
+      let notificationSprite = null;
+      const isUnread = !readPostIds.includes(post.id) && post.creatorId !== this.user.uid;
+      if (isUnread) {
+        notificationSprite = this.add.image(
+          postSprite.x + postSprite.displayWidth / 2, // Top-right of post
+          postSprite.y - postSprite.displayHeight / 2,
+          'exclamation'
+        )
+        .setScrollFactor(0)
+        .setDepth(postSprite.depth + 1)
+        .setScale(scale * 0.5) // Scale relative to the post sprite
+        .setVisible(!!this.interactionPanel); // Ensure it's visible when the panel is open
+      }
+
+      this.posts.set(post.id, { sprite: postSprite, usernameText, notification: notificationSprite, data: post });
     });
   }
 
@@ -614,6 +653,13 @@ export default class VillageScene extends Phaser.Scene {
 
   openInteractionPanel() {
     this.isPanelOpen = true;
+
+    // Mark all current posts as read and hide the notification
+    const postIds = this.postsData.map(p => p.id);
+    this.markPostsAsRead(postIds);
+    this.exclamationMark.setVisible(false);
+
+
     this.interactionText.setVisible(false); // Hide the prompt
 
     // Create the panel centered on the camera
@@ -644,13 +690,11 @@ export default class VillageScene extends Phaser.Scene {
       panel.x,
       panel.y,
       bodyWidth,
-      bodyHeight,
-      0x000000 // Black color
+      bodyHeight, // Black color
     ).setScrollFactor(0).setDepth(panel.depth + 1); // Ensure it's on top of the panel
     
     // --- Create Grid Layout inside the Body Container ---
-    const graphics = this.add.graphics().setScrollFactor(0).setDepth(bodyContainer.depth + 1);
-    graphics.lineStyle(2, 0xffffff, 1); // 2px, white, full alpha
+    const graphics = this.add.graphics().setScrollFactor(0).setDepth(bodyContainer.depth + 1);// 2px, white, full alpha
 
     const bodyTop = bodyContainer.y - bodyContainer.displayHeight / 2;
     const bodyLeft = bodyContainer.x - bodyContainer.displayWidth / 2;
@@ -808,11 +852,15 @@ export default class VillageScene extends Phaser.Scene {
   openPostCreator() {
     if (this.postCreatorDOM) return; // Already open
 
-    this.isDomFormOpen = true; // Set the flag to block game input
-    this.input.keyboard.disableGlobalCapture(); // Stop Phaser from listening to keys
-    this.game.canvas.blur(); // Tell the browser to unfocus the game canvas
+    // Immediately close the interaction panel to prevent visual overlap
+    this.closeInteractionPanel();
 
-    this.closeInteractionPanel(); // Close the bulletin board panel
+    this.isDomFormOpen = true; // Set the flag to block game input
+    
+    // This is a crucial step. It tells Phaser to stop capturing all keyboard events,
+    // allowing them to be processed by the HTML form input fields instead.
+    this.input.keyboard.disableGlobalCapture();
+    this.game.canvas.blur(); // Good practice to also unfocus the canvas
 
     // HTML content for the form
     const formHTML = `
@@ -840,21 +888,23 @@ export default class VillageScene extends Phaser.Scene {
     const postTextArea = formElement.querySelector('#post-text');
 
     const closePostCreator = () => {
-      // If the user cancels, re-open the panel they came from
-      const shouldReopenPanel = statusDiv.textContent !== 'Post created!';
+      const postWasSuccessfullyCreated = statusDiv.textContent === 'Post created!';
 
+      // Destroy the DOM element first
       if (this.postCreatorDOM) {
         this.postCreatorDOM.destroy();
         this.postCreatorDOM = null;
-        this.isDomFormOpen = false; // Reset the flag
-        this.input.keyboard.enableGlobalCapture(); // Re-enable Phaser's keyboard input
-        this.game.canvas.focus(); // Return focus to the game canvas
       }
 
-      if (shouldReopenPanel) {
-        // A short delay prevents a flicker if the panel is being destroyed and recreated
-        // This happens if the onSnapshot listener fires immediately
+      // If the post was NOT successfully created (e.g., user cancelled),
+      // re-open the bulletin board.
+      if (!postWasSuccessfullyCreated) {
+        // A short delay prevents a flicker and ensures the DOM element is gone
         this.time.delayedCall(50, () => {
+          // Reset flags and input listeners only when returning to the game
+          this.isDomFormOpen = false;
+          this.input.keyboard.enableGlobalCapture();
+          this.game.canvas.focus();
           this.openInteractionPanel();
         });
       }
@@ -881,7 +931,11 @@ export default class VillageScene extends Phaser.Scene {
           createdAt: serverTimestamp()
         });
         statusDiv.textContent = 'Post created!';
-        setTimeout(closePostCreator, 1000); // Close after a short delay
+        // After successful creation, we return to the game state.
+        this.isDomFormOpen = false;
+        this.input.keyboard.enableGlobalCapture();
+        this.game.canvas.focus();
+        setTimeout(closePostCreator, 1000); // Close the form after a short delay
       } catch (error) {
         console.error("Error creating post:", error);
         statusDiv.textContent = 'Error. Please try again.';
@@ -892,5 +946,35 @@ export default class VillageScene extends Phaser.Scene {
 
     cancelButton.addEventListener('click', closePostCreator);
     closeButton.addEventListener('click', closePostCreator);
+  }
+
+  getReadPostIds() {
+    try {
+      // Use a key specific to this village to store read posts
+      const readPosts = localStorage.getItem(`readPosts_${this.villageId}`);
+      return readPosts ? JSON.parse(readPosts) : [];
+    } catch (e) {
+      console.error("Could not parse read posts from localStorage", e);
+      return [];
+    }
+  }
+
+  markPostsAsRead(postIdsToMark) {
+    try {
+      const currentReadIds = this.getReadPostIds();
+      // Create a new set to avoid duplicates and add the new IDs
+      const newReadIds = [...new Set([...currentReadIds, ...postIdsToMark])];
+      localStorage.setItem(`readPosts_${this.villageId}`, JSON.stringify(newReadIds));
+    } catch (e) {
+      console.error("Could not save read posts to localStorage", e);
+    }
+  }
+
+  checkForUnreadPosts() {
+    const readPostIds = this.getReadPostIds();
+    // An unread post is one that is not in the read list AND was not created by the current user.
+    const hasUnread = this.postsData.some(post => 
+      !readPostIds.includes(post.id) && post.creatorId !== this.user.uid);
+    this.exclamationMark.setVisible(hasUnread);
   }
 }
