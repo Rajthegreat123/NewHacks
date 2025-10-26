@@ -61,12 +61,12 @@ A multiplayer 2D side-scroller game built with Phaser, Firebase, and Node.js. Pl
     b. Copy the keys and values from the `firebaseConfig` object into the `.env` file in the following format:
 
     ```env
-    VITE_FIREBASE_API_KEY="your-api-key"
-    VITE_FIREBASE_AUTH_DOMAIN="your-auth-domain"
-    VITE_FIREBASE_PROJECT_ID="your-project-id"
-    VITE_FIREBASE_STORAGE_BUCKET="your-storage-bucket"
-    VITE_FIREBASE_MESSAGING_SENDER_ID="your-messaging-sender-id"
-    VITE_FIREBASE_APP_ID="your-app-id"
+    VITE_FIREBASE_API_KEY=your-api-key
+    VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain
+    VITE_FIREBASE_PROJECT_ID=your-project-id
+    VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+    VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+    VITE_FIREBASE_APP_ID=your-app-id
     ```
 
     > **Note:** The server uses these environment variables to securely provide the configuration to the client-side application.
@@ -81,4 +81,4 @@ A multiplayer 2D side-scroller game built with Phaser, Firebase, and Node.js. Pl
 
 2.  **Open the Commune:**
 
-    Open your web browser and navigate to `http://localhost:8080`. You should see the login/signup screen for the Commune.
+    Open your web browser and navigate to `http://localhost:8080/public`. You should see the login/signup screen for the Commune.
