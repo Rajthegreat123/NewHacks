@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { getAuthInstance, getDb } from "../firebase-config.js";
+import { auth, db } from "../firebase-config.js";
 import {
   doc,
   getDoc,
@@ -29,9 +29,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
     // Hide other UI elements if they are visible
     document.getElementById("login-form").style.display = "none";
     document.getElementById("signup-form").style.display = "none";
-    this.auth = getAuthInstance();
-    this.db = getDb();
-    this.user = this.auth.currentUser;
+    this.user = auth.currentUser;
 
     if (!this.user) {
       alert("You are not logged in!");
@@ -57,7 +55,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
   }
 
   async fetchUserVillages() {
-    const userDocRef = doc(this.db, "users", this.user.uid);
+    const userDocRef = doc(db, "users", this.user.uid);
     const userDoc = await getDoc(userDocRef);
 
     const villageIds = userDoc.exists() ? userDoc.data().villages || [] : [];
@@ -65,7 +63,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
     if (villageIds.length > 0) {
       this.myVillagesList.innerHTML = "<h3>My Villages</h3>"; // Reset
 
-      const villagePromises = villageIds.map(id => getDoc(doc(this.db, "villages", id)));
+      const villagePromises = villageIds.map(id => getDoc(doc(db, "villages", id)));
       const villageDocs = await Promise.all(villagePromises);
 
       villageDocs.forEach((villageDoc, index) => {
@@ -89,7 +87,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
     }
 
     // Query for the village with the matching code
-    const villagesRef = collection(this.db, "villages");
+    const villagesRef = collection(db, "villages");
     const q = query(villagesRef, where("villageCode", "==", joinCode));
     const querySnapshot = await getDocs(q);
 
@@ -114,7 +112,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
     // Add user to the village's member list and village to user's village list
     // We set a placeholder for the house, which will be chosen in the next scene
     await updateDoc(villageRef, { [`members.${this.user.uid}`]: { joined: new Date() } });
-    await updateDoc(doc(this.db, "users", this.user.uid), { villages: arrayUnion(villageId) });
+    await updateDoc(doc(db, "users", this.user.uid), { villages: arrayUnion(villageId) });
 
     alert(`Successfully joined village: ${villageData.name}`);
     
@@ -127,7 +125,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
     if (!villageName) return;
 
     // Create a reference to a new document to get its ID before saving
-    const newVillageRef = doc(collection(this.db, "villages"));
+    const newVillageRef = doc(collection(db, "villages"));
     const villageId = newVillageRef.id;
     const villageCode = villageId.substring(0, 5).toUpperCase();
 
@@ -142,7 +140,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
       },
     });
 
-    await updateDoc(doc(this.db, "users", this.user.uid), { villages: arrayUnion(villageId) });    
+    await updateDoc(doc(db, "users", this.user.uid), { villages: arrayUnion(villageId) });    
     this.scene.start("HouseCustomizationScene", { villageId: villageId });
   }
 

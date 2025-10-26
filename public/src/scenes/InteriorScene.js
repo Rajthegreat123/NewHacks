@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { getDb, getAuthInstance, getRealtimeDb } from "../firebase-config.js";
+import { db, auth, database } from "../firebase-config.js";
 import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, setDoc, updateDoc } from "firebase/firestore";
 import { ref, set, onValue, onDisconnect, remove } from "firebase/database";
 
@@ -37,10 +37,7 @@ export default class InteriorScene extends Phaser.Scene {
   // Preload is not needed here as VillageScene preloads all assets
 
   async create() {
-    this.auth = getAuthInstance();
-    this.rtdb = getRealtimeDb();
-    this.db = getDb();
-    this.user = this.auth.currentUser;
+    this.user = auth.currentUser;
     if (!this.user) return this.scene.start("MenuScene");
 
     // Disable physics debug drawing
@@ -59,7 +56,7 @@ export default class InteriorScene extends Phaser.Scene {
     const playerScale = targetPlayerHeight / playerBaseHeight;
 
     // --- Fetch User Data ---
-    const userDoc = await getDoc(doc(this.db, "users", this.user.uid));
+    const userDoc = await getDoc(doc(db, "users", this.user.uid));
     const userData = userDoc.exists() ? userDoc.data() : {};
     this.username = userData.username || "Villager";
     const avatar = userData.avatar || "ArabCharacter_idle.png";
@@ -298,7 +295,7 @@ export default class InteriorScene extends Phaser.Scene {
   }
 
   listenForPlantUpdates() {
-    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+    const plantDocRef = doc(db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
 
     this.plantUnsubscribe = onSnapshot(plantDocRef, (doc) => {
       if (doc.exists()) {
@@ -326,15 +323,15 @@ export default class InteriorScene extends Phaser.Scene {
     if (!this.plantData) return;
     console.log(`Watering the ${this.plantData.type}!`);
 
-    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+    const plantDocRef = doc(db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
     // Just update the lastWatered timestamp. The growth check will happen in the snapshot listener.
     await updateDoc(plantDocRef, { lastWatered: serverTimestamp() });
   }
 
   connectToHouse() {
     const housePlayersRefPath = `villages/${this.villageId}/houses/${this.houseOwnerId}/players`;
-    const housePlayersRef = ref(this.rtdb, housePlayersRefPath);
-    this.playerRef = ref(this.rtdb, `${housePlayersRefPath}/${this.user.uid}`);
+    const housePlayersRef = ref(database, housePlayersRefPath);
+    this.playerRef = ref(database, `${housePlayersRefPath}/${this.user.uid}`);
 
     onDisconnect(this.playerRef).remove();
 
@@ -404,7 +401,7 @@ export default class InteriorScene extends Phaser.Scene {
     this.loadingPlayers.add(uid);
 
     // Fetch user data for avatar and username
-    const userDoc = await getDoc(doc(this.db, "users", uid));
+    const userDoc = await getDoc(doc(db, "users", uid));
     if (!userDoc.exists()) {
       this.loadingPlayers.delete(uid); // Clean up if user doc not found
       return;
@@ -440,7 +437,7 @@ export default class InteriorScene extends Phaser.Scene {
   // --- POSTS AND INTERACTION PANEL LOGIC ---
 
   listenForPosts() {
-    const postsQuery = query(collection(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "posts"), orderBy("createdAt", "asc"));
+    const postsQuery = query(collection(db, "villages", this.villageId, "houses", this.houseOwnerId, "posts"), orderBy("createdAt", "asc"));
     this.postsUnsubscribe = onSnapshot(postsQuery, (snapshot) => {
       this.postsData = [];
       snapshot.forEach(doc => {
@@ -582,7 +579,7 @@ export default class InteriorScene extends Phaser.Scene {
           removePostButton.disableInteractive().setAlpha(0.5);
           try {
             for (const post of ownerPosts) {
-              const postRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "posts", post.id);
+              const postRef = doc(db, "villages", this.villageId, "houses", this.houseOwnerId, "posts", post.id);
               await deleteDoc(postRef);
             }
             this.closeInteractionPanel();
@@ -685,7 +682,7 @@ export default class InteriorScene extends Phaser.Scene {
   }
 
   async createNewPlant(flowerName) {
-    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+    const plantDocRef = doc(db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
     const newPlantData = {
       type: flowerName,
       stage: 1,
@@ -713,7 +710,7 @@ export default class InteriorScene extends Phaser.Scene {
 
       if (secondsSinceWatered > oneWeekInSeconds) {
         this.plantData.stage++;
-        const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+        const plantDocRef = doc(db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
         updateDoc(plantDocRef, { stage: this.plantData.stage }); // Update stage in DB
       }
     }
@@ -831,7 +828,7 @@ export default class InteriorScene extends Phaser.Scene {
       statusDiv.textContent = 'Uploading...';
 
       try {
-        await addDoc(collection(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "posts"), {
+        await addDoc(collection(db, "villages", this.villageId, "houses", this.houseOwnerId, "posts"), {
           creatorId: this.user.uid,
           username: this.username,
           text: postText,

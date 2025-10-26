@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { getAuthInstance, getDb } from "../firebase-config.js";
+import { auth, db } from "../firebase-config.js";
 import { doc, updateDoc, setDoc } from "firebase/firestore";
 
 export default class HouseCustomizationScene extends Phaser.Scene {
@@ -24,9 +24,7 @@ export default class HouseCustomizationScene extends Phaser.Scene {
     // Hide other UI elements
     document.getElementById("village-lobby").style.display = "none";
 
-    this.auth = getAuthInstance();
-    this.db = getDb();
-    this.user = this.auth.currentUser;
+    this.user = auth.currentUser;
 
     if (!this.user || !this.villageId) {
       this.scene.start("MenuScene");
@@ -71,7 +69,7 @@ export default class HouseCustomizationScene extends Phaser.Scene {
 
   async confirm() {
     const selectedHouse = this.houses[this.currentHouseIndex];
-    const villageRef = doc(this.db, "villages", this.villageId);
+    const villageRef = doc(db, "villages", this.villageId);
     await updateDoc(villageRef, { [`members.${this.user.uid}.house`]: selectedHouse });
 
     this.shutdown();
