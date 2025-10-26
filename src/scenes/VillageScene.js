@@ -261,23 +261,41 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   spawnHouses(sortedMembers) {
-    const groundLevel = this.cameras.main.height * 0.85;
-    const houseBaseHeight = 16;
-    const targetHouseHeight = this.cameras.main.height * 0.2;
-    const houseScale = targetHouseHeight / houseBaseHeight;
-    const centerX = this.cameras.main.width; // Center of the 2x wide world
+  const groundLevel = this.cameras.main.height * 0.85;
+  const houseBaseHeight = 16;
+  const targetHouseHeight = this.cameras.main.height * 0.2;
+  const houseScale = targetHouseHeight / houseBaseHeight;
+  const centerX = this.brownRectangle.x; // Center is the brown rectangle
 
-    sortedMembers.forEach(([uid, memberData], index) => {
-      if (!memberData.house || this.houses.has(uid)) return; // Skip if no house or already spawned
+  const gap = 500; // distance between houses
 
-      const houseKey = memberData.house.split('.')[0];
-      let houseX;
-      houseX = this.brownRectangle.x + (index % 2 === 0 ? -1 : 1) * (150 + Math.floor(index / 2) * 200);
+  // Counters for left/right placement
+  let leftIndex = 0;
+  let rightIndex = 0;
 
-      const houseSprite = this.add.image(houseX, groundLevel, houseKey).setOrigin(0.5, 1).setScale(houseScale).setDepth(1);
-      this.houses.set(uid, houseSprite);
-    });
-  }
+  sortedMembers.forEach(([uid, memberData], index) => {
+    if (!memberData.house || this.houses.has(uid)) return; // Skip if no house or already spawned
+
+    const houseKey = memberData.house.split('.')[0];
+    let houseX;
+
+    // Alternate sides: even index → left, odd index → right
+    if (index % 2 === 0) {
+      houseX = centerX - gap * (leftIndex + 1);
+      leftIndex++;
+    } else {
+      houseX = centerX + gap * (rightIndex + 1);
+      rightIndex++;
+    }
+
+    const houseSprite = this.add.image(houseX, groundLevel, houseKey)
+      .setOrigin(0.5, 1)
+      .setScale(houseScale)
+      .setDepth(1);
+
+    this.houses.set(uid, houseSprite);
+  });
+}
 
   async createOtherPlayer(uid, playerData) {
     if (this.otherPlayers.has(uid) || this.loadingPlayers.has(uid)) return;
