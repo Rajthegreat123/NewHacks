@@ -39,7 +39,6 @@ export default class InteriorScene extends Phaser.Scene {
   async create() {
     this.user = auth.currentUser;
     if (!this.user) return this.scene.start("MenuScene");
-
     // Disable physics debug drawing
     this.physics.world.drawDebug = false;
 
@@ -332,7 +331,6 @@ export default class InteriorScene extends Phaser.Scene {
     const housePlayersRefPath = `villages/${this.villageId}/houses/${this.houseOwnerId}/players`;
     const housePlayersRef = ref(database, housePlayersRefPath);
     this.playerRef = ref(database, `${housePlayersRefPath}/${this.user.uid}`);
-
     onDisconnect(this.playerRef).remove();
 
     onValue(housePlayersRef, (snapshot) => {
