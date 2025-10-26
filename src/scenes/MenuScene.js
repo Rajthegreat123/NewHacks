@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { auth, db } from "../firebase-config.js";
+import { getAuthInstance, getDb } from "../firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 
@@ -59,7 +59,9 @@ export default class MenuScene extends Phaser.Scene {
       }
 
       try {
+        const auth = getAuthInstance();
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const db = getDb();
         await setDoc(doc(db, "users", userCredential.user.uid), {
           username: username,
           email: email
@@ -75,10 +77,12 @@ export default class MenuScene extends Phaser.Scene {
     loginButton.addEventListener("click", async () => {
       const usernameOrEmail = document.getElementById("login-email").value;
       const password = document.getElementById("login-password").value;
+      const auth = getAuthInstance();
 
       try {
         let email = usernameOrEmail;
         if (!email.includes("@")) {
+          const db = getDb();
           const usersRef = collection(db, "users");
           const q = query(usersRef, where("username", "==", usernameOrEmail));
           const querySnapshot = await getDocs(q);

@@ -4,11 +4,12 @@ import VillageScene from "./scenes/VillageScene.js";
 import VillageLobbyScene from "./scenes/VillageLobbyScene.js";
 import AvatarCustomizationScene from "./scenes/AvatarCustomizationScene.js";
 import HouseCustomizationScene from "./scenes/HouseCustomizationScene.js";
-import { app } from "./firebase-config.js";
+import { initialize } from './firebase-config.js';
 import InteriorScene from "./scenes/InteriorScene.js";
 
-console.log("Firebase initialized, creating game...");
-const config = {
+initialize.then(() => {
+    console.log("Firebase initialized, creating game...");
+    const config = {
       type: Phaser.AUTO,
       pixelArt: true,
       width: window.innerWidth,
@@ -32,5 +33,6 @@ const config = {
       }
     };
 
-const game = new Phaser.Game(config);
-window.game = game; // Optional for debugging
+    const game = new Phaser.Game(config);
+    window.game = game; // Optional for debugging
+});

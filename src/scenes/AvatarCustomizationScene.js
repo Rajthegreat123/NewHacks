@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { auth, db } from "../firebase-config.js";
+import { getAuthInstance, getDb } from "../firebase-config.js";
 import { doc, updateDoc } from "firebase/firestore";
 
 export default class AvatarCustomizationScene extends Phaser.Scene {
@@ -21,7 +21,9 @@ export default class AvatarCustomizationScene extends Phaser.Scene {
     document.getElementById("login-form").style.display = "none";
     document.getElementById("signup-form").style.display = "none";
 
-    this.user = auth.currentUser;
+    this.auth = getAuthInstance();
+    this.db = getDb();
+    this.user = this.auth.currentUser;
 
     if (!this.user) {
       this.scene.start("MenuScene");
@@ -64,7 +66,7 @@ export default class AvatarCustomizationScene extends Phaser.Scene {
 
   async confirm() {
     const selectedAvatar = this.avatars[this.currentAvatarIndex];
-    const userDocRef = doc(db, "users", this.user.uid);
+    const userDocRef = doc(this.db, "users", this.user.uid);
     await updateDoc(userDocRef, { avatar: selectedAvatar });
 
     this.shutdown();
