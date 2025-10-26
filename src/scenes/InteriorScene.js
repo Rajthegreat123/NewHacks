@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import { getDb, getAuthInstance, getRealtimeDb } from "../firebase-config.js";
-import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, setDoc, updateDoc } from "firebase/firestore";
 import { ref, set, onValue, onDisconnect, remove } from "firebase/database";
 
 export default class InteriorScene extends Phaser.Scene {
@@ -27,6 +27,11 @@ export default class InteriorScene extends Phaser.Scene {
     this.exclamationMark = null;
     this.spaceKey = null;
     this.brownRectangle = null;
+    this.exitDoor = null; // Add a reference for the exit door
+    this.plantingArea = null;
+    this.plantingPanel = null;
+    this.plantedFlowerSprite = null; // To hold the planted flower sprite
+    this.plantData = null; // To store all plant data from Firestore
   }
 
   // Preload is not needed here as VillageScene preloads all assets
@@ -37,6 +42,9 @@ export default class InteriorScene extends Phaser.Scene {
     this.db = getDb();
     this.user = this.auth.currentUser;
     if (!this.user) return this.scene.start("MenuScene");
+
+    // Disable physics debug drawing
+    this.physics.world.drawDebug = false;
 
     // --- Set Background Color ---
     this.cameras.main.setBackgroundColor('#73bed3');
@@ -143,26 +151,26 @@ export default class InteriorScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+    // Define the planting area for positioning, but only make it interactive for the owner.
+    const plantingX = worldWidth * 0.21;
+    this.plantingArea = this.add.zone(plantingX, groundLevel, 150, 200).setOrigin(0.5, 1);
+    this.physics.add.existing(this.plantingArea, true);
+    // --- Create Planting Area (Only for the house owner) ---
+    if (this.user.uid === this.houseOwnerId) {
+      this.plantingArea.isPlantingArea = true; // Flag for identification
+    }
+
     // --- Exit Door ---
-    const exitDoor = this.add.zone(worldWidth * 0.9, groundLevel, 100, 200).setOrigin(0.5, 1);
-    this.physics.add.existing(exitDoor, true);
+    this.exitDoor = this.add.zone(worldWidth * 0.9, groundLevel, 100, 200).setOrigin(0.5, 1);
+    this.physics.add.existing(this.exitDoor, true);
+    this.exitDoor.isExit = true; // Add a flag to identify it
 
-    const exitText = this.add.text(exitDoor.x, exitDoor.y - exitDoor.height - 20, "Press 'W' or 'Up' to Exit", {
-        fontSize: '17px', fill: '#ffff00', fontStyle: 'bold', backgroundColor: 'rgba(0,0,0,0.7)'
-    }).setOrigin(0.5).setVisible(false);
-
-    this.physics.add.overlap(this.player, exitDoor, () => {
-        exitText.setVisible(true);
-        if (this.keys.W.isDown || this.cursors.up.isDown) {
-            this.scene.start("VillageScene", { villageId: this.villageId });
-        }
-    }, null, this);
-
-    // Hide text when not overlapping
-    this.physics.world.on('worldstep', () => {
-        if (!this.physics.overlap(this.player, exitDoor)) {
-            exitText.setVisible(false);
-        }
+    // The overlap callback now only needs to set the closest object for the spacebar logic.
+    // The text visibility is handled in the update loop.
+    this.physics.add.overlap(this.player, this.exitDoor, (player, zone) => {
+        this.closestInteractiveObject = zone;
+    }, (player, zone) => {
+        // This callback is not needed with the new update loop logic
     });
 
     // --- Interaction Text ---
@@ -172,6 +180,7 @@ export default class InteriorScene extends Phaser.Scene {
 
     this.connectToHouse();
     this.listenForPosts();
+    this.listenForPlantUpdates();
   }
 
   update() {
@@ -186,11 +195,25 @@ export default class InteriorScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.closestInteractiveObject) {
       if (this.closestInteractiveObject === this.brownRectangle) {
         this.openInteractionPanel();
+      } else if (this.closestInteractiveObject.isPlantingArea) {
+        if (this.plantedFlowerSprite) {
+          this.waterPlant();
+        } else {
+          this.openPlantingPanel();
+        }
+      } else if (this.closestInteractiveObject.isExit) { // Check if it's the exit door zone
+        // The overlap handler sets closestInteractiveObject to the exitDoor zone.
+        // If space is pressed while it's the closest object, we exit.
+        this.scene.start("VillageScene", { villageId: this.villageId });
       }
     }
 
     // --- Proximity check for interaction ---
-    const interactiveObjects = [this.brownRectangle]; // Only the board is interactive inside
+    const interactiveObjects = [this.brownRectangle, this.exitDoor];
+    if (this.plantingArea) {
+      interactiveObjects.push(this.plantingArea);
+    }
+
     let foundObject = null;
     let minDistance = Infinity;
     const proximityThreshold = 150;
@@ -238,9 +261,24 @@ export default class InteriorScene extends Phaser.Scene {
 
   handleProximity(foundObject, minDistance, proximityThreshold) {
     if (foundObject && minDistance < proximityThreshold) {
+      // Determine which text to show based on the object
+      if (foundObject.isExit) {
+        this.interactionText.setText("Press 'Space' to Exit");
+        this.interactionText.setPosition(foundObject.x, foundObject.y - foundObject.height - 20);
+      } else if (foundObject.isPlantingArea) {
+        if (this.plantedFlowerSprite) {
+          this.interactionText.setText("Press 'Space' to Water");
+        } else {
+          this.interactionText.setText("Press 'Space' to Plant");
+        }
+        this.interactionText.setPosition(foundObject.x, foundObject.y - foundObject.height - 20);
+      } else {
+        this.interactionText.setText("Press 'Space' to Interact");
+        const yOffset = foundObject.displayHeight * 0.8; // Lowered the text for the board
+        this.interactionText.setPosition(foundObject.x, foundObject.y - yOffset);
+      }
+
       this.interactionText.setVisible(true);
-      const yOffset = foundObject.displayHeight + 20;
-      this.interactionText.setPosition(foundObject.x, foundObject.y - yOffset);
       this.closestInteractiveObject = foundObject;
     } else {
       this.interactionText.setVisible(false);
@@ -257,6 +295,40 @@ export default class InteriorScene extends Phaser.Scene {
         vx: this.player.body.velocity.x,
       });
     }
+  }
+
+  listenForPlantUpdates() {
+    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+
+    this.plantUnsubscribe = onSnapshot(plantDocRef, (doc) => {
+      if (doc.exists()) {
+        this.plantData = doc.data();
+        this.displayPlantedFlower();
+      } else {
+        // No plant data exists
+        this.plantData = null;
+        if (this.plantedFlowerSprite) {
+          this.plantedFlowerSprite.destroy();
+          this.plantedFlowerSprite = null;
+        }
+      }
+    });
+
+    // Clean up listener on scene shutdown
+    this.events.on('shutdown', () => {
+      if (this.plantUnsubscribe) {
+        this.plantUnsubscribe();
+      }
+    });
+  }
+
+  async waterPlant() {
+    if (!this.plantData) return;
+    console.log(`Watering the ${this.plantData.type}!`);
+
+    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+    // Just update the lastWatered timestamp. The growth check will happen in the snapshot listener.
+    await updateDoc(plantDocRef, { lastWatered: serverTimestamp() });
   }
 
   connectToHouse() {
@@ -550,6 +622,126 @@ export default class InteriorScene extends Phaser.Scene {
     }
     this.isPanelOpen = false;
     this.isDomFormOpen = false;
+  }
+
+  openPlantingPanel() {
+    this.isPanelOpen = true;
+    this.interactionText.setVisible(false);
+
+    const panel = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, 'emptyscreen')
+      .setScrollFactor(0).setDepth(10).setInteractive();
+
+    const targetWidth = this.cameras.main.width * 0.6;
+    const scale = targetWidth / panel.width;
+    panel.setScale(scale);
+
+    const closeButton = this.add.text(panel.x + panel.displayWidth / 2 - 16, panel.y - panel.displayHeight / 2 + 120, '×', {
+      fontSize: '32px', fill: '#fff', padding: { x: 8, y: 0 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(panel.depth + 1).setInteractive({ useHandCursor: true });
+
+    closeButton.on('pointerdown', () => this.closePlantingPanel());
+
+    const title = this.add.text(panel.x, panel.y - panel.displayHeight / 2 + 150, 'Choose a Flower to Plant', {
+      fontSize: '24px', fill: '#fff', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(panel.depth + 1);
+
+    const flowers = ['Daffodil', 'Daisy', 'Orchid', 'Rose', 'Sunflower', 'Tulip'];
+    const flowerSprites = [];
+
+    const bodyWidth = panel.displayWidth * 0.8;
+    const bodyHeight = panel.displayHeight * 0.6;
+    const colWidth = bodyWidth / 3;
+    const rowHeight = bodyHeight / 2;
+    const startX = panel.x - bodyWidth / 2 + colWidth / 2;
+    const startY = panel.y - bodyHeight / 2 + rowHeight / 2 + 50; // +50 to move it down from title
+
+    flowers.forEach((flowerName, index) => {
+      const row = Math.floor(index / 3);
+      const col = index % 3;
+
+      const x = startX + col * colWidth;
+      const y = startY + row * rowHeight;
+
+      const icon = this.add.image(x, y, `${flowerName}4`)
+        .setScrollFactor(0)
+        .setDepth(panel.depth + 1)
+        .setScale(6) // Make icons 2x larger
+        .setInteractive({ useHandCursor: true });
+
+      const text = this.add.text(x, y + 100, flowerName, { fontSize: '32px', fill: '#fff' })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(panel.depth + 1);
+
+      icon.on('pointerdown', () => {
+        console.log(`Selected ${flowerName}`);
+        this.createNewPlant(flowerName);
+      });
+
+      flowerSprites.push({ icon, text });
+    });
+
+    this.plantingPanel = { main: panel, closeButton, title, items: flowerSprites };
+  }
+
+  async createNewPlant(flowerName) {
+    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+    const newPlantData = {
+      type: flowerName,
+      stage: 1,
+      lastWatered: serverTimestamp()
+    };
+    await setDoc(plantDocRef, newPlantData);
+    // The onSnapshot listener will automatically call displayPlantedFlower
+    this.closePlantingPanel();
+  }
+
+  displayPlantedFlower() {
+    if (!this.plantData) return;
+
+    // If a flower is already planted, remove it first
+    if (this.plantedFlowerSprite) {
+      this.plantedFlowerSprite.destroy();
+    }
+
+    // Check for growth
+    const oneWeekInSeconds = 7 * 24 * 60 * 60;
+    if (this.plantData.lastWatered && this.plantData.stage < 4) {
+      const lastWateredDate = this.plantData.lastWatered.toDate();
+      const now = new Date();
+      const secondsSinceWatered = (now.getTime() - lastWateredDate.getTime()) / 1000;
+
+      if (secondsSinceWatered > oneWeekInSeconds) {
+        this.plantData.stage++;
+        const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
+        updateDoc(plantDocRef, { stage: this.plantData.stage }); // Update stage in DB
+      }
+    }
+
+    const flowerKey = `${this.plantData.type}${this.plantData.stage}`;
+
+    // --- Calculate Scale to Fit Hitbox ---
+    const flowerTexture = this.textures.get(flowerKey);
+    const originalWidth = flowerTexture.getSourceImage().width;
+    const targetWidth = this.plantingArea.width; // The width of the planting zone
+    const scale = targetWidth / originalWidth;
+
+    this.plantedFlowerSprite = this.add.sprite(this.plantingArea.x, this.plantingArea.y, flowerKey)
+      .setOrigin(0.5, 1).setDepth(1).setScale(scale);
+  }
+
+  closePlantingPanel() {
+    if (this.plantingPanel) {
+      this.plantingPanel.main.destroy();
+      this.plantingPanel.closeButton.destroy();
+      this.plantingPanel.title.destroy();
+      this.plantingPanel.items.forEach(item => {
+        item.icon.destroy();
+        item.text.destroy();
+      });
+      this.plantingPanel = null;
+    }
+    this.isPanelOpen = false;
   }
 
   showExpandedPost(postData) {

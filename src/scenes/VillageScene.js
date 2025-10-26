@@ -54,6 +54,30 @@ export default class VillageScene extends Phaser.Scene {
     this.load.image("exclamation", "assets/exclamation.png");
     this.load.image("InnerHouse", "assets/InnerHouse.png");
 
+    // Load flower assets for planting
+    this.load.image("Daffodil4", "assets/Daffodil4.png");
+    this.load.image("Daisy4", "assets/Daisy4.png");
+    this.load.image("Orchid4", "assets/Orchid4.png");
+    this.load.image("Rose4", "assets/Rose4.png");
+    this.load.image("Sunflower4", "assets/Sunflower4.png");
+    this.load.image("Tulip4", "assets/Tulip4.png");
+
+    // Load planted flower assets
+    this.load.image("Daffodil1", "assets/Daffodil1.png");
+    this.load.image("Daisy1", "assets/Daisy1.png");
+    this.load.image("Orchid1", "assets/Orchid1.png");
+    this.load.image("Rose1", "assets/Rose1.png");
+    this.load.image("Sunflower1", "assets/Sunflower1.png");
+    this.load.image("Tulip1", "assets/Tulip1.png");
+
+    // Load all growth stages for flowers
+    const flowerTypes = ['Daffodil', 'Daisy', 'Orchid', 'Rose', 'Sunflower', 'Tulip'];
+    flowerTypes.forEach(flower => {
+      // Stages 2 and 3. Stage 1 and 4 are already loaded.
+      this.load.image(`${flower}2`, `assets/${flower}2.png`);
+      this.load.image(`${flower}3`, `assets/${flower}3.png`);
+    });
+
     // Load all possible house styles
     for (let i = 1; i <= 8; i++) {
       this.load.image(`House${i}`, `assets/House${i}.png`);
@@ -69,6 +93,9 @@ export default class VillageScene extends Phaser.Scene {
 
     // Hide the main UI container
     document.getElementById("ui").style.display = "none";
+
+    // Disable physics debug drawing
+    this.physics.world.drawDebug = false;
 
     // --- Set Background Color ---
     this.cameras.main.setBackgroundColor('#73bed3');
@@ -557,7 +584,7 @@ export default class VillageScene extends Phaser.Scene {
     let rightIndex = 0;
 
     for (const [uid, memberData] of sortedMembers) {
-      if (!memberData.house) return;
+      if (!memberData.house) continue;
 
       const groundLevel = this.brownRectangle.y;
       const houseKey = memberData.house.split('.')[0];
