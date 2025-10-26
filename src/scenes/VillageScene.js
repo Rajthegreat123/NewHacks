@@ -72,10 +72,11 @@ export default class VillageScene extends Phaser.Scene {
 
     // Brown Box (centerpiece)
     this.brownRectangle = this.add.rectangle(worldWidth / 2, groundLevel, 35 * playerScale, 15 * playerScale, 0x8B4513)
-      .setOrigin(0.5, 1);
+      .setOrigin(0.5, 1) // bottom-center
+      .setDepth(1);
 
     // --- Create Player ---
-      this.player = this.physics.add.sprite(worldWidth / 2, spawnHeight, playerAvatarKey)
+      this.player = this.physics.add.sprite(this.brownRectangle.x, this.brownRectangle.y - 50, playerAvatarKey)
       .setOrigin(0.5, 1) // Anchor to bottom-center
       .setScale(playerScale)
       .setDepth(2); // Set player depth to be higher than houses
@@ -261,41 +262,38 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   spawnHouses(sortedMembers) {
-  const groundLevel = this.cameras.main.height * 0.85;
-  const houseBaseHeight = 16;
-  const targetHouseHeight = this.cameras.main.height * 0.2;
-  const houseScale = targetHouseHeight / houseBaseHeight;
-  const centerX = this.brownRectangle.x; // Center is the brown rectangle
+    const groundLevel = 0; // brown box is at 0,0 for Y
+    const houseBaseHeight = 16;
+    const targetHouseHeight = this.cameras.main.height * 0.2;
+    const houseScale = targetHouseHeight / houseBaseHeight;
 
-  const gap = 500; // distance between houses
+    const gap = 500; // fixed gap
 
-  // Counters for left/right placement
-  let leftIndex = 0;
-  let rightIndex = 0;
+    let leftIndex = 0;
+    let rightIndex = 0;
 
-  sortedMembers.forEach(([uid, memberData], index) => {
-    if (!memberData.house || this.houses.has(uid)) return; // Skip if no house or already spawned
+    sortedMembers.forEach(([uid, memberData], index) => {
+      if (!memberData.house || this.houses.has(uid)) return;
 
-    const houseKey = memberData.house.split('.')[0];
-    let houseX;
+      const houseKey = memberData.house.split('.')[0];
+      let houseX;
 
-    // Alternate sides: even index → left, odd index → right
-    if (index % 2 === 0) {
-      houseX = centerX - gap * (leftIndex + 1);
-      leftIndex++;
-    } else {
-      houseX = centerX + gap * (rightIndex + 1);
-      rightIndex++;
-    }
+      if (index % 2 === 0) {
+        houseX = -gap * (leftIndex + 1);
+        leftIndex++;
+      } else {
+        houseX = gap * (rightIndex + 1);
+        rightIndex++;
+      }
 
-    const houseSprite = this.add.image(houseX, groundLevel, houseKey)
-      .setOrigin(0.5, 1)
-      .setScale(houseScale)
-      .setDepth(1);
+      const houseSprite = this.add.image(this.brownRectangle.x + houseX, this.brownRectangle.y + groundLevel, houseKey)
+        .setOrigin(0.5, 1)
+        .setScale(houseScale)
+        .setDepth(1);
 
-    this.houses.set(uid, houseSprite);
-  });
-}
+      this.houses.set(uid, houseSprite);
+    });
+  }
 
   async createOtherPlayer(uid, playerData) {
     if (this.otherPlayers.has(uid) || this.loadingPlayers.has(uid)) return;
