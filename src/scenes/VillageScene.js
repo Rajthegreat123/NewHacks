@@ -9,7 +9,6 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.background = null; // For the parallax background
     this.villageId = data.villageId;
     this.otherPlayers = new Map(); // To store sprites of other players
     this.playerRef = null; // Reference to this player in Realtime Database
@@ -49,7 +48,6 @@ export default class VillageScene extends Phaser.Scene {
     this.load.image("post", "assets/post.png");
     this.load.image("emptyscreen", "assets/ScreenEmpty.png");
     this.load.image("exclamation", "assets/exclamation.png");
-    this.load.image("BG1", "assets/BG1.png");
 
     // Load all possible house styles
     for (let i = 1; i <= 8; i++) {
@@ -67,13 +65,8 @@ export default class VillageScene extends Phaser.Scene {
     // Hide the main UI container
     document.getElementById("ui").style.display = "none";
 
-    // --- Create Parallax Background ---
-    this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'BG1')
-      .setOrigin(0, 0)
-      .setScrollFactor(0) // Pin the tileSprite to the camera
-      .setDepth(-1) // Ensure it's behind everything else
-      .setTileScale(2.15); // Scale the texture inside the tile sprite
-    this.textures.get("BG1").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    // --- Set Background Color ---
+    this.cameras.main.setBackgroundColor('#73bed3');
 
     // --- Define World Properties ---
     const groundLevel = this.cameras.main.height * 0.85; // Lower 15% is ground
@@ -139,9 +132,10 @@ export default class VillageScene extends Phaser.Scene {
 
     // --- Create Username Text ---
     this.usernameText = this.add.text(this.player.x, this.player.y - this.player.displayHeight - 10, this.username, {
-      fontSize: '12px',
+      fontSize: '15px',
       fill: '#ffffff',
       backgroundColor: 'rgba(0,0,0,0.5)',
+      fontStyle: 'bold',
       padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(2); // Match player depth
 
@@ -197,9 +191,10 @@ export default class VillageScene extends Phaser.Scene {
 
     // --- Interaction Text ---
     this.interactionText = this.add.text(0, 0, "Press 'Space' to Interact", {
-      fontSize: '14px',
+      fontSize: '17px',
       fill: '#ffff00', // Yellow text to stand out
       backgroundColor: 'rgba(0, 0, 0, 0)',
+      fontStyle: 'bold',
       padding: { x: 8, y: 4 }
     })
     .setOrigin(0.5)
@@ -267,12 +262,6 @@ export default class VillageScene extends Phaser.Scene {
       // Play idle animation if not moving and on the ground
       this.player.play('arab_idle', true);
     }
-    // Update username position
-
-    // Update the tileSprite's position to keep it scrolling with the player
-    // We multiply the camera's scroll position by a factor to create the parallax effect.
-    // A smaller factor (e.g., 0.25) means the background moves slower.
-    this.background.tilePositionX = this.cameras.main.scrollX * 0.5; 
 
     this.usernameText.x = this.player.x; // Follow player's X
     this.usernameText.y = this.player.y - this.player.displayHeight - 10; // Position above the scaled player
@@ -581,9 +570,10 @@ export default class VillageScene extends Phaser.Scene {
         this.textures.get(houseKey).setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         const houseText = this.add.text(houseX, groundLevel - houseSprite.displayHeight + 200, `${username}'s House`, {
-          fontSize: '14px',
+          fontSize: '17px',
           fill: '#ffffff',
           backgroundColor: 'rgba(0, 0, 0, 0)',
+          fontStyle: 'bold',
           padding: { x: 6, y: 3 }
         }).setOrigin(0.5).setDepth(2);
 
@@ -641,9 +631,10 @@ export default class VillageScene extends Phaser.Scene {
     sprite.body.setAllowGravity(false); // We'll control their position from the server
 
     const usernameText = this.add.text(spawnX, spawnY - sprite.displayHeight - 10, username, {
-        fontSize: '12px',
+        fontSize: '15px',
         fill: '#ffffff',
         backgroundColor: 'rgba(0,0,0,0.5)',
+        fontStyle: 'bold',
         padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(2);
 
