@@ -6,7 +6,6 @@ export default class AvatarCustomizationScene extends Phaser.Scene {
   constructor() {
     super("AvatarCustomizationScene");
     this.avatars = ["ArabCharacter_idle.png", "AfricanCharacter1.png", "IndianCharacter1.png"];
-    this.avatarNames = ["Adventurer", "Villager", "Wizard"];
     this.currentAvatarIndex = 0;
   }
 
@@ -33,7 +32,6 @@ export default class AvatarCustomizationScene extends Phaser.Scene {
 
     // --- DOM Element References ---
     this.avatarPreview = document.getElementById("ac-avatar-preview");
-    this.avatarNameText = document.getElementById("ac-avatar-name");
     this.prevButton = document.getElementById("ac-prev-avatar");
     this.nextButton = document.getElementById("ac-next-avatar");
     this.confirmButton = document.getElementById("ac-confirm-button");
@@ -54,7 +52,6 @@ export default class AvatarCustomizationScene extends Phaser.Scene {
   updateAvatarDisplay() {
     const avatarFile = this.avatars[this.currentAvatarIndex];
     this.avatarPreview.src = `assets/${avatarFile}`;
-    this.avatarNameText.innerText = this.avatarNames[this.currentAvatarIndex];
   }
 
   prevAvatar() {
