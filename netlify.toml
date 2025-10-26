@@ -1,0 +1,14 @@
+# c:\NewHacks\netlify.toml
+
+[build]
+  # This tells Netlify where your serverless functions are located.
+  functions = "netlify/"
+  # This tells Netlify which folder to publish. Since your index.html,
+  # src, and assets are in the root, we use "."
+  publish = "public"
+
+# This rule makes sure that any requests to /api/* are handled by your functions.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
