@@ -35,8 +35,8 @@ export default class VillageScene extends Phaser.Scene {
   preload() {
     // Load all possible player avatars
     this.load.image("ArabCharacter_idle", "assets/ArabCharacter_idle.png");
-    this.load.image("AfricanCharacter1", "assets/AfricanCharacter1.png");
-    this.load.image("IndianCharacter1", "assets/IndianCharacter1.png");
+    this.load.image("AfricanCharacter_idle", "assets/AfricanCharacter_idle.png");
+    this.load.image("IndianCharacter_idle", "assets/IndianCharacter_idle.png");
     this.load.image("IndianCharacter_idle", "assets/IndianCharacter_idle.png");
     this.load.image("AfricanCharacter_idle", "assets/AfricanCharacter_idle.png");
 

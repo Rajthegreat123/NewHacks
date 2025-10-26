@@ -5,7 +5,7 @@ import { doc, updateDoc } from "firebase/firestore";
 export default class AvatarCustomizationScene extends Phaser.Scene {
   constructor() {
     super("AvatarCustomizationScene");
-    this.avatars = ["ArabCharacter_idle.png", "AfricanCharacter1.png", "IndianCharacter1.png"];
+    this.avatars = ["ArabCharacter_idle.png", "AfricanCharacter_idle.png", "IndianCharacter_idle.png"];
     this.currentAvatarIndex = 0;
   }
 
