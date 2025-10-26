@@ -42,10 +42,13 @@ export default class VillageScene extends Phaser.Scene {
     // Hide the main UI container
     document.getElementById("ui").style.display = "none";
 
-    // --- Define World Properties ---
-    const groundLevel = this.cameras.main.height * 0.85; // Lower 15% is ground
-    const spawnHeight = groundLevel - 50; // Spawn players slightly above ground
-    const worldWidth = this.cameras.main.width * 2; // Make the world wider than the screen
+    // Define a consistent world coordinate system
+    const WORLD_WIDTH = 4000; // logical world width for everyone
+    const WORLD_HEIGHT = 2000;
+
+    // Set world bounds independent of screen size
+    this.physics.world.setBounds(-WORLD_WIDTH / 2, -WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.setBounds(-WORLD_WIDTH / 2, -WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT);
 
     // --- Scaling Calculations ---
     // Player: 30% of screen height
@@ -67,16 +70,17 @@ export default class VillageScene extends Phaser.Scene {
     const playerAvatarKey = avatar.split('.')[0]; // "ArabCharacter_idle.png" -> "ArabCharacter_idle"
 
     // --- Create World Elements ---
-    this.ground = this.add.rectangle(0, groundLevel, worldWidth, this.cameras.main.height * 0.15, 0x8b4513).setOrigin(0);
-    this.physics.add.existing(this.ground, true); // Make it a static physics body
-
-    // Brown Box (centerpiece)
-    this.brownRectangle = this.add.rectangle(worldWidth / 2, groundLevel, 35 * playerScale, 15 * playerScale, 0x8B4513)
-      .setOrigin(0.5, 1) // bottom-center
+    // Position brown box at origin (0,0)
+    this.brownRectangle = this.add.rectangle(0, 0, 35 * playerScale, 15 * playerScale, 0x8B4513)
+      .setOrigin(0.5, 1)
       .setDepth(1);
 
+    // The ground is a wide static body whose top is at y=0
+    this.ground = this.add.rectangle(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 0x8b4513).setOrigin(0.5, 0);
+    this.physics.add.existing(this.ground, true); // Make it a static physics body
+
     // --- Create Player ---
-      this.player = this.physics.add.sprite(this.brownRectangle.x, this.brownRectangle.y - 50, playerAvatarKey)
+      this.player = this.physics.add.sprite(0, -100, playerAvatarKey) // just above brown box
       .setOrigin(0.5, 1) // Anchor to bottom-center
       .setScale(playerScale)
       .setDepth(2); // Set player depth to be higher than houses
@@ -98,8 +102,6 @@ export default class VillageScene extends Phaser.Scene {
 
     // --- Physics and Camera ---
     this.physics.add.collider(this.player, this.ground);
-    this.physics.world.setBounds(0, 0, worldWidth, this.cameras.main.height);
-    this.cameras.main.setBounds(0, 0, worldWidth, this.cameras.main.height);
 
     // Immediately sync initial position
     this.physics.world.once('worldstep', () => {
@@ -111,6 +113,11 @@ export default class VillageScene extends Phaser.Scene {
         });
       }
     });
+
+    // Dynamically adjust zoom to maintain consistent visible world scale
+    const desiredVisibleWidth = 1600; // how much of the world we want visible horizontally
+    const zoom = this.cameras.main.width / desiredVisibleWidth;
+    this.cameras.main.setZoom(zoom);
     this.cameras.main.startFollow(this.player);
 
     // --- UI Elements ---
@@ -262,12 +269,11 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   spawnHouses(sortedMembers) {
-    const groundLevel = 0; // brown box is at 0,0 for Y
+    const groundY = this.brownRectangle.y; // baseline (0)
     const houseBaseHeight = 16;
     const targetHouseHeight = this.cameras.main.height * 0.2;
     const houseScale = targetHouseHeight / houseBaseHeight;
-
-    const gap = 500; // fixed gap
+    const gap = 500; // world units between houses
 
     let leftIndex = 0;
     let rightIndex = 0;
@@ -286,7 +292,7 @@ export default class VillageScene extends Phaser.Scene {
         rightIndex++;
       }
 
-      const houseSprite = this.add.image(this.brownRectangle.x + houseX, this.brownRectangle.y + groundLevel, houseKey)
+      const houseSprite = this.add.image(houseX, groundY, houseKey)
         .setOrigin(0.5, 1)
         .setScale(houseScale)
         .setDepth(1);
