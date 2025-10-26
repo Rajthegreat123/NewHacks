@@ -14,7 +14,7 @@ export default class HouseCustomizationScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor("#333");
+    this.cameras.main.setBackgroundColor("#7a4841");
 
     // --- UI Setup ---
     document.getElementById("ui").style.display = "block";

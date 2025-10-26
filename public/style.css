@@ -4,15 +4,38 @@ html, body {
   overflow: hidden;
 }
 
+:root {
+  /* --ui-slice is the number of pixels in each corner of your UIHolder image (no "px") */
+  --ui-slice: 3;       /* adjust to match your UIHolder corner size (e.g. 8, 12, 16) */
+  --ui-border-px: 3px; /* same value but with px for border-width */
+}
+
 #ui {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 20px;
-  border-radius: 10px;
+  padding: 24px;
   color: white;
+  z-index: 10;
+  box-sizing: border-box;
+
+  /* pixel art rendering */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+
+  /* Use a border-image 9-slice properly:
+     - var(--ui-slice) must be a number (no px) for slicing
+     - border-width uses the px value so corners keep their intended size */
+  border-style: solid;
+  border-width: var(--ui-border-px);
+
+  /* shorthand is simpler and less error-prone */
+  border-image: url('assets/UIHolder.png') var(--ui-slice) fill round;
+
+  background-color: transparent;
+  overflow: visible;
 }
 
 #ui h2 {
@@ -26,13 +49,58 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Button uses an image but keep pixel-perfect rendering.
+   For the crispest result consider placing an <img> inside the button if
+   you see blurring in some browsers. */
 #ui button {
   width: 100%;
   padding: 10px;
-  background-color: #0f0;
-  color: black;
+  background-image: url('assets/ButtonBG.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   border: none;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 1em;
+
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  background-color: transparent;
+}
+
+/* Keep smaller arrow buttons readable and use Arrow texture */
+.arrow-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background-image: url('assets/Arrow.png');
+  background-size: 60% 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  cursor: pointer;
+  display: inline-block;
+  line-height: 0; /* hide text if any */
+
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* flip arrow for left direction */
+.arrow-left {
+  transform: scaleX(-1);
+}
+
+/* avatar/house nav buttons keep compact size when inside selectors */
+.avatar-select button,
+.house-select button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
 }
 
 #ui p {
@@ -40,10 +108,13 @@ html, body {
 }
 
 #ui a {
-  color: #0f0;
+  color: rgb(255, 255, 255);
   text-decoration: none;
+  
 }
 
+/* Panels have a fixed content width so border-image can size naturally.
+   You can remove/adjust these widths to let the UI panel size purely by content. */
 #login-form, #signup-form, #village-lobby {
   width: 300px;
 }

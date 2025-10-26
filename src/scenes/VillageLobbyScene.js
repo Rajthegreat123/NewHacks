@@ -19,7 +19,7 @@ export default class VillageLobbyScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor("#333");
+    this.cameras.main.setBackgroundColor("#7a4841");
 
     document.getElementById("ui").style.display = "block";
     const lobbyUi = document.getElementById("village-lobby");

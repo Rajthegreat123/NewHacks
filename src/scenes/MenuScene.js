@@ -10,9 +10,23 @@ export default class MenuScene extends Phaser.Scene {
 
   create() {
     console.log("MenuScene create method called");
-    this.cameras.main.setBackgroundColor("#222");
 
+    // add logo at top of UI
+    const logo = document.createElement('img');
+    logo.id = 'ui-logo';
+    logo.src = 'assets/Title.png'; // adjust filename if different
+    logo.alt = 'Title';
+    logo.style.display = 'block';
+    logo.style.margin = '0 auto 12px';
+    logo.style.width = '320px';       // tweak to fit your layout (use integer multiples for pixel art)
+    logo.style.imageRendering = 'pixelated';
     const ui = document.getElementById("ui");
+    ui.prepend(logo);
+
+    ui.style.display = "block";
+
+    this.cameras.main.setBackgroundColor("#7a4841");
+
     ui.style.display = "block";
 
     const loginForm = document.getElementById("login-form");

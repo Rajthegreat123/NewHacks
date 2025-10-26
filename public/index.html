@@ -24,7 +24,7 @@
         <input type="text" id="login-email" placeholder="Username or Email" />
         <input type="password" id="login-password" placeholder="Password" />
         <button id="login-button">Login</button>
-        <p>Don't have an account? <a href="#" id="show-signup">Sign up</a></p>
+        <p>Don't have an account? <a href="#" id="show-signup"><u>Sign up</u></a></p>
       </div>
       <div id="signup-form" style="display: none;">
         <h2>Sign Up</h2>
@@ -33,7 +33,7 @@
         <input type="password" id="signup-password" placeholder="Password" />
         <input type="password" id="signup-confirm-password" placeholder="Confirm Password" />
         <button id="signup-button">Sign Up</button>
-        <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+        <p>Already have an account? <a href="#" id="show-login"><u>Login</u></a></p>
       </div>
       <div id="village-lobby" style="display: none;">
         <h2>Village Lobby</h2>
@@ -52,9 +52,9 @@
         <h2>Create Your Villager</h2>
         <div class="customization-column">
           <div class="avatar-select">
-            <button id="ac-prev-avatar">&lt;</button>
+            <button id="ac-prev-avatar" class="arrow-btn arrow-left" aria-label="Previous avatar" style="background-image: url('assets/Arrow.png');"></button>
             <img id="ac-avatar-preview" src="assets/ArabCharacter_idle.png" alt="Avatar Preview">
-            <button id="ac-next-avatar">&gt;</button>
+            <button id="ac-next-avatar" class="arrow-btn" aria-label="Next avatar" style="background-image: url('assets/Arrow.png');"></button>
           </div>
         </div>
         <button id="ac-confirm-button">Confirm</button>
@@ -65,9 +65,9 @@
         <div class="customization-column">
           <h3>House</h3>
           <div class="house-select">
-            <button id="hc-prev-house">&lt;</button>
+            <button id="hc-prev-house" class="arrow-btn arrow-left" aria-label="Previous house" style="background-image: url('assets/Arrow.png');"></button>
             <img id="hc-house-preview" src="assets/House1.png" alt="House Preview" />
-            <button id="hc-next-house">&gt;</button>
+            <button id="hc-next-house" class="arrow-btn" aria-label="Next house" style="background-image: url('assets/Arrow.png');"></button>
           </div>
           <p id="hc-house-name">Cozy Cottage</p>
         </div>
