@@ -3,14 +3,16 @@ import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getAuth } from "firebase/auth";
 
-let app;
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 
-const initialize = fetch('/api/firebase-config')
-  .then(response => response.json())
-  .then(firebaseConfig => {
-    app = initializeApp(firebaseConfig);
-    return app;
-  });
+const app = initializeApp(firebaseConfig);
 
 function getDb() {
     if (!app) throw new Error("Firebase not initialized");
@@ -28,4 +30,4 @@ function getRealtimeDb() {
 }
 
 
-export { initialize, getDb, getAuthInstance, getRealtimeDb};
+export { app, getDb, getAuthInstance, getRealtimeDb};
