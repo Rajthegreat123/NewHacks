@@ -1,5 +1,5 @@
 {
-  "name": "village-game",
+  "name": "commune",
   "version": "1.0.0",
   "description": "Multiplayer 2D side-scroller village game using Phaser, Firebase, and WebSockets",
   "main": "server/server.js",

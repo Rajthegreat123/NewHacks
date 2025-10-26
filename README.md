@@ -1,6 +1,6 @@
-# Village Game
+# Commune
 
-A multiplayer 2D side-scroller village game built with Phaser, Firebase, and Node.js. Players can join villages, customize their avatars and houses, and interact with other players in real-time.
+A multiplayer 2D side-scroller Commune built with Phaser, Firebase, and Node.js. Players can join villages, customize their avatars and houses, and interact with other players in real-time.
 
 ## Features
 
@@ -51,7 +51,7 @@ A multiplayer 2D side-scroller village game built with Phaser, Firebase, and Nod
         -   Go to your Project's `Settings` (click the gear icon ⚙️ next to `Project Overview`).
         -   In the `General` tab, scroll down to `Your apps`.
         -   Click the web icon (`</>`) to create a new web app.
-        -   Give it a nickname (e.g., "Village Game") and register the app.
+        -   Give it a nickname (e.g., "Commune") and register the app.
         -   Firebase will provide you with a `firebaseConfig` object. You will need these values.
 
 4.  **Create an environment file:**
@@ -71,7 +71,7 @@ A multiplayer 2D side-scroller village game built with Phaser, Firebase, and Nod
 
     > **Note:** The server uses these environment variables to securely provide the configuration to the client-side application.
 
-## Running the Game
+## Running the Commune
 
 1.  **Start the server:**
 
@@ -79,6 +79,6 @@ A multiplayer 2D side-scroller village game built with Phaser, Firebase, and Nod
     npm start
     ```
 
-2.  **Open the game:**
+2.  **Open the Commune:**
 
-    Open your web browser and navigate to `http://localhost:8080`. You should see the login/signup screen for the game.
+    Open your web browser and navigate to `http://localhost:8080`. You should see the login/signup screen for the Commune.
