@@ -1,6 +1,6 @@
 # Commune
 
-A multiplayer 2D side-scroller Commune built with Phaser, Firebase, and Node.js. Players can join villages, customize their avatars and houses, and interact with other players in real-time.
+A multiplayer 2D side-scroller game built with Phaser, Firebase, and Node.js. Players can join villages, customize their avatars and houses, and interact with other players in real-time.
 
 ## Features
 
