@@ -270,11 +270,20 @@ export default class VillageScene extends Phaser.Scene {
     const gap = 600; // fixed world gap (constant across all screens)
     const brownBoxX = this.brownRectangle.x;
 
+    // Step 1: Remove houses that no longer belong
+    this.houses.forEach((houseSprite, uid) => {
+      if (!sortedMembers.find(([id]) => id === uid)) {
+        houseSprite.destroy();
+        this.houses.delete(uid);
+      }
+    });
+
+    // Step 2: Reset counters and reposition all houses (existing or new)
     let leftIndex = 0;
     let rightIndex = 0;
 
     sortedMembers.forEach(([uid, memberData], index) => {
-      if (!memberData.house || this.houses.has(uid)) return;
+      if (!memberData.house) return;
 
       const groundLevel = this.brownRectangle.y;
       const houseKey = memberData.house.split('.')[0];
@@ -288,12 +297,20 @@ export default class VillageScene extends Phaser.Scene {
         rightIndex++;
       }
 
-      const houseSprite = this.add.image(houseX, groundLevel, houseKey)
-        .setOrigin(0.5, 1)
-        .setScale(houseScale)
-        .setDepth(1);
+      let houseSprite = this.houses.get(uid);
 
-      this.houses.set(uid, houseSprite);
+      if (houseSprite) {
+        // Reposition existing house
+        houseSprite.setPosition(houseX, groundLevel);
+      } else {
+        // Create new house
+        houseSprite = this.add.image(houseX, groundLevel, houseKey)
+          .setOrigin(0.5, 1)
+          .setScale(houseScale)
+          .setDepth(1);
+
+        this.houses.set(uid, houseSprite);
+      }
     });
   }
 
