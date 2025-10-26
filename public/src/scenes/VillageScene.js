@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { getDb, getAuthInstance, getRealtimeDb } from "../firebase-config.js";
+import { db, auth, database } from "../firebase-config.js";
 import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, deleteDoc } from "firebase/firestore";
 import { ref, set, onValue, onDisconnect, remove } from "firebase/database";
 
@@ -85,10 +85,7 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   async create() {
-    this.auth = getAuthInstance();
-    this.db = getDb();
-    this.rtdb = getRealtimeDb();
-    this.user = this.auth.currentUser;
+    this.user = auth.currentUser;
     if (!this.user) return this.scene.start("MenuScene");
 
     // Hide the main UI container
@@ -117,7 +114,7 @@ export default class VillageScene extends Phaser.Scene {
     const targetHouseHeight = this.cameras.main.height * 0.2;
     const houseScale = targetHouseHeight / houseBaseHeight;
 
-    const userDoc = await getDoc(doc(this.db, "users", this.user.uid));
+    const userDoc = await getDoc(doc(db, "users", this.user.uid));
     const userData = userDoc.exists() ? userDoc.data() : {};
     this.username = userData.username || "Villager";
     const avatar = userData.avatar || "ArabCharacter_idle.png";
@@ -362,8 +359,8 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   connectToVillage() {
-    const villagePlayersRef = ref(this.rtdb, `villages/${this.villageId}/players`);
-    this.playerRef = ref(this.rtdb, `villages/${this.villageId}/players/${this.user.uid}`);
+    const villagePlayersRef = ref(database, `villages/${this.villageId}/players`);
+    this.playerRef = ref(database, `villages/${this.villageId}/players/${this.user.uid}`);
 
     // Wait for the first physics step to ensure the player is properly on the ground
     // before setting the initial position in the database.
@@ -442,7 +439,7 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   listenForPosts() {
-    const postsQuery = query(collection(this.db, "villages", this.villageId, "posts"), orderBy("createdAt", "asc"));
+    const postsQuery = query(collection(db, "villages", this.villageId, "posts"), orderBy("createdAt", "asc"));
     this.postsUnsubscribe = onSnapshot(postsQuery, (snapshot) => {
       this.postsData = [];
       snapshot.forEach(doc => {
@@ -471,7 +468,7 @@ export default class VillageScene extends Phaser.Scene {
   }
 
   listenForVillageUpdates() {
-    const villageDocRef = doc(this.db, "villages", this.villageId);
+    const villageDocRef = doc(db, "villages", this.villageId);
     this.villageUnsubscribe = onSnapshot(villageDocRef, (doc) => {
       if (!doc.exists()) return;
 
@@ -782,7 +779,7 @@ export default class VillageScene extends Phaser.Scene {
         removePostButton.disableInteractive().setAlpha(0.5);
         try {
           // Delete the post from Firestore
-          const postRef = doc(this.db, "villages", this.villageId, "posts", userPost.id);
+          const postRef = doc(db, "villages", this.villageId, "posts", userPost.id);
           await deleteDoc(postRef);
           // The onSnapshot listener will handle the UI update automatically
           this.closeInteractionPanel(); // Close panel after removal
@@ -945,7 +942,7 @@ export default class VillageScene extends Phaser.Scene {
       statusDiv.textContent = 'Uploading...';
 
       try {
-        await addDoc(collection(this.db, "villages", this.villageId, "posts"), {
+        await addDoc(collection(db, "villages", this.villageId, "posts"), {
           creatorId: this.user.uid,
           username: this.username,
           text: postText,
