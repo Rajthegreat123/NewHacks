@@ -4,7 +4,7 @@ import VillageScene from "./scenes/VillageScene.js";
 import VillageLobbyScene from "./scenes/VillageLobbyScene.js";
 import AvatarCustomizationScene from "./scenes/AvatarCustomizationScene.js";
 import HouseCustomizationScene from "./scenes/HouseCustomizationScene.js";
-import { initialize } from './firebase-config.js';
+import { initializeApp } from "firebase/app";
 import InteriorScene from "./scenes/InteriorScene.js";
 
 initialize.then(() => {
