@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { getDb, getAuthInstance, getRealtimeDb } from "../firebase-config.js";
+import { getDb } from "../firebase-config.js";
 import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, setDoc, updateDoc } from "firebase/firestore";
 import { ref, set, onValue, onDisconnect, remove } from "firebase/database";
 
@@ -178,7 +178,6 @@ export default class InteriorScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(5).setVisible(false);
 
     this.connectToHouse();
-    this.listenForPosts();
   }
 
   update() {
@@ -266,40 +265,6 @@ export default class InteriorScene extends Phaser.Scene {
     }
   }
 
-  listenForPlantUpdates() {
-    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
-
-    this.plantUnsubscribe = onSnapshot(plantDocRef, (doc) => {
-      if (doc.exists()) {
-        this.plantData = doc.data();
-        this.displayPlantedFlower();
-      } else {
-        // No plant data exists
-        this.plantData = null;
-        if (this.plantedFlowerSprite) {
-          this.plantedFlowerSprite.destroy();
-          this.plantedFlowerSprite = null;
-        }
-      }
-    });
-
-    // Clean up listener on scene shutdown
-    this.events.on('shutdown', () => {
-      if (this.plantUnsubscribe) {
-        this.plantUnsubscribe();
-      }
-    });
-  }
-
-  async waterPlant() {
-    if (!this.plantData) return;
-    console.log(`Watering the ${this.plantData.type}!`);
-
-    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
-    // Just update the lastWatered timestamp. The growth check will happen in the snapshot listener.
-    await updateDoc(plantDocRef, { lastWatered: serverTimestamp() });
-  }
-
   connectToHouse() {
     const housePlayersRefPath = `villages/${this.villageId}/houses/${this.houseOwnerId}/players`;
     const housePlayersRef = ref(database, housePlayersRefPath);
@@ -364,6 +329,8 @@ export default class InteriorScene extends Phaser.Scene {
         if (post.sprite) post.sprite.destroy();
       });
     });
+
+    this.listenForPosts();
   }
 
   async createOtherPlayer(uid, playerData) {
@@ -590,126 +557,6 @@ export default class InteriorScene extends Phaser.Scene {
     }
     this.isPanelOpen = false;
     this.isDomFormOpen = false;
-  }
-
-  openPlantingPanel() {
-    this.isPanelOpen = true;
-    this.interactionText.setVisible(false);
-
-    const panel = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, 'emptyscreen')
-      .setScrollFactor(0).setDepth(10).setInteractive();
-
-    const targetWidth = this.cameras.main.width * 0.6;
-    const scale = targetWidth / panel.width;
-    panel.setScale(scale);
-
-    const closeButton = this.add.text(panel.x + panel.displayWidth / 2 - 16, panel.y - panel.displayHeight / 2 + 120, '×', {
-      fontSize: '32px', fill: '#fff', padding: { x: 8, y: 0 }
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(panel.depth + 1).setInteractive({ useHandCursor: true });
-
-    closeButton.on('pointerdown', () => this.closePlantingPanel());
-
-    const title = this.add.text(panel.x, panel.y - panel.displayHeight / 2 + 150, 'Choose a Flower to Plant', {
-      fontSize: '24px', fill: '#fff', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(panel.depth + 1);
-
-    const flowers = ['Daffodil', 'Daisy', 'Orchid', 'Rose', 'Sunflower', 'Tulip'];
-    const flowerSprites = [];
-
-    const bodyWidth = panel.displayWidth * 0.8;
-    const bodyHeight = panel.displayHeight * 0.6;
-    const colWidth = bodyWidth / 3;
-    const rowHeight = bodyHeight / 2;
-    const startX = panel.x - bodyWidth / 2 + colWidth / 2;
-    const startY = panel.y - bodyHeight / 2 + rowHeight / 2 + 50; // +50 to move it down from title
-
-    flowers.forEach((flowerName, index) => {
-      const row = Math.floor(index / 3);
-      const col = index % 3;
-
-      const x = startX + col * colWidth;
-      const y = startY + row * rowHeight;
-
-      const icon = this.add.image(x, y, `${flowerName}4`)
-        .setScrollFactor(0)
-        .setDepth(panel.depth + 1)
-        .setScale(6) // Make icons 2x larger
-        .setInteractive({ useHandCursor: true });
-
-      const text = this.add.text(x, y + 100, flowerName, { fontSize: '32px', fill: '#fff' })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(panel.depth + 1);
-
-      icon.on('pointerdown', () => {
-        console.log(`Selected ${flowerName}`);
-        this.createNewPlant(flowerName);
-      });
-
-      flowerSprites.push({ icon, text });
-    });
-
-    this.plantingPanel = { main: panel, closeButton, title, items: flowerSprites };
-  }
-
-  async createNewPlant(flowerName) {
-    const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
-    const newPlantData = {
-      type: flowerName,
-      stage: 1,
-      lastWatered: serverTimestamp()
-    };
-    await setDoc(plantDocRef, newPlantData);
-    // The onSnapshot listener will automatically call displayPlantedFlower
-    this.closePlantingPanel();
-  }
-
-  displayPlantedFlower() {
-    if (!this.plantData) return;
-
-    // If a flower is already planted, remove it first
-    if (this.plantedFlowerSprite) {
-      this.plantedFlowerSprite.destroy();
-    }
-
-    // Check for growth
-    const oneWeekInSeconds = 7 * 24 * 60 * 60;
-    if (this.plantData.lastWatered && this.plantData.stage < 4) {
-      const lastWateredDate = this.plantData.lastWatered.toDate();
-      const now = new Date();
-      const secondsSinceWatered = (now.getTime() - lastWateredDate.getTime()) / 1000;
-
-      if (secondsSinceWatered > oneWeekInSeconds) {
-        this.plantData.stage++;
-        const plantDocRef = doc(this.db, "villages", this.villageId, "houses", this.houseOwnerId, "plant", "state");
-        updateDoc(plantDocRef, { stage: this.plantData.stage }); // Update stage in DB
-      }
-    }
-
-    const flowerKey = `${this.plantData.type}${this.plantData.stage}`;
-
-    // --- Calculate Scale to Fit Hitbox ---
-    const flowerTexture = this.textures.get(flowerKey);
-    const originalWidth = flowerTexture.getSourceImage().width;
-    const targetWidth = this.plantingArea.width; // The width of the planting zone
-    const scale = targetWidth / originalWidth;
-
-    this.plantedFlowerSprite = this.add.sprite(this.plantingArea.x, this.plantingArea.y, flowerKey)
-      .setOrigin(0.5, 1).setDepth(1).setScale(scale);
-  }
-
-  closePlantingPanel() {
-    if (this.plantingPanel) {
-      this.plantingPanel.main.destroy();
-      this.plantingPanel.closeButton.destroy();
-      this.plantingPanel.title.destroy();
-      this.plantingPanel.items.forEach(item => {
-        item.icon.destroy();
-        item.text.destroy();
-      });
-      this.plantingPanel = null;
-    }
-    this.isPanelOpen = false;
   }
 
   showExpandedPost(postData) {
